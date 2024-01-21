@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="MyApp">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
     <link rel="icon" type="image/x-icon" href="images/favicon_io/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Macro Tracker</title>
+    <title>NutriSageAI - Food Macro Tracker</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -32,11 +37,24 @@
     </div>
     <div id="foodEntriesSection">
         <h2>Food Entries</h2>
-        <input type="text" id="foodInput" placeholder="Enter food item" />
+        <input type="text" id="foodInput" placeholder="Enter food item" maxlength="20" />
         <button id="addButton">Add</button>
         <button id="clearButton">Clear Day</button>
-        <div id="entries"></div>
+        <table id="entriesTable">
+            <thead>
+                <tr>
+                    <th>Food Item</th>
+                    <th>Carbs</th>
+                    <th>Protein</th>
+                    <th>Fats</th>
+                    <th>Calories</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody id="entries"></tbody>
+        </table>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

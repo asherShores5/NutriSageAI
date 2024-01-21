@@ -70,17 +70,29 @@ async function addFood() {
     }
 }
 
-
-
-
 function displayEntries() {
     let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
-    let entriesDiv = document.getElementById('entries');
-    entriesDiv.innerHTML = entries.map(entry => `<div>${entry.food}: Carbs: ${entry.macros.carbs}, Protein: ${entry.macros.protein}, Fat: ${entry.macros.fat}, Calories: ${entry.macros.calories}</div>`).join('');
-
+    let entriesTable = document.getElementById('entries');
+    entriesTable.innerHTML = entries.map((entry, index) => 
+        `<tr>
+            <td>${entry.food.substring(0, 25)}${entry.food.length > 25 ? '...' : ''}</td>
+            <td>${entry.macros.carbs}g</td>
+            <td>${entry.macros.protein}g</td>
+            <td>${entry.macros.fat}g</td>
+            <td>${entry.macros.calories}</td>
+            <td><button class="remove-btn" onclick="removeEntry(${index})">X</button></td>
+        </tr>`
+    ).join('');
     calculateTotalMacros();
 }
 
+function removeEntry(index) {
+    let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
+    entries.splice(index, 1);
+    localStorage.setItem('foodEntries', JSON.stringify(entries));
+    displayEntries();
+    calculateTotalMacros();
+}
 
 function calculateTotalMacros() {
     let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
@@ -98,7 +110,6 @@ function calculateTotalMacros() {
     document.getElementById('totalFats').textContent = totalFats + 'g';
     document.getElementById('totalCalories').textContent = totalCalories;
 }
-
 
 function saveFoodData(food, macros) {
     let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
