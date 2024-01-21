@@ -62,3 +62,37 @@ button:hover {
     height: auto; /* Maintains aspect ratio */
     display: block; /* Removes any inline spacing */
 }
+
+#entriesTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#entriesTable, #entriesTable th, #entriesTable td {
+    border: 1px solid #ddd;
+}
+
+#entriesTable th, #entriesTable td {
+    padding: 8px;
+    text-align: left;
+}
+
+#entriesTable th {
+    background-color: #f2f2f2;
+}
+
+#entriesTable tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+#entriesTable tr:hover {
+    background-color: #eaeaea;
+}
+
+.remove-btn {
+    color: red;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
