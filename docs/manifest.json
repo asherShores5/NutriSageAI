@@ -1,0 +1,17 @@
+{
+    "short_name": "NutriSageAI",
+    "name": "NutriSageAI - Food Macro Tracker",
+    "icons": [
+      {
+        "src": "images/icon.webp",
+        "sizes": "48x48",
+        "type": "image/webp"
+      }
+    ],
+    "start_url": ".",
+    "background_color": "#FFFFFF",
+    "display": "standalone",
+    "scope": "/",
+    "theme_color": "#000000"
+  }
+  
