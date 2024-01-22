@@ -75,7 +75,7 @@ function displayEntries() {
     let entriesTable = document.getElementById('entries');
     entriesTable.innerHTML = entries.map((entry, index) => 
         `<tr>
-            <td>${entry.food.substring(0, 25)}${entry.food.length > 25 ? '...' : ''}</td>
+            <td>${entry.food.length > 20 ? entry.food.substring(0, 20) + '...' : entry.food}</td>
             <td>${entry.macros.carbs}g</td>
             <td>${entry.macros.protein}g</td>
             <td>${entry.macros.fat}g</td>
@@ -83,8 +83,8 @@ function displayEntries() {
             <td><button class="remove-btn" onclick="removeEntry(${index})">X</button></td>
         </tr>`
     ).join('');
-    calculateTotalMacros();
 }
+
 
 function removeEntry(index) {
     let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
