@@ -83,6 +83,7 @@ function displayEntries() {
             <td><button class="remove-btn" onclick="removeEntry(${index})">X</button></td>
         </tr>`
     ).join('');
+    calculateTotalMacros();
 }
 
 
@@ -112,6 +113,7 @@ function calculateTotalMacros() {
 }
 
 function saveFoodData(food, macros) {
+    console.log("Logging Food: ", food, macros);
     let entries = JSON.parse(localStorage.getItem('foodEntries')) || [];
     entries.push({ food, macros });
     localStorage.setItem('foodEntries', JSON.stringify(entries));
@@ -121,6 +123,28 @@ function clearDay() {
     localStorage.removeItem('foodEntries');
     displayEntries();
 }
+
+document.getElementById('manualEntryButton').addEventListener('click', function() {
+    document.getElementById('manualEntryModal').style.display = 'block';
+});
+
+document.getElementsByClassName('close')[0].addEventListener('click', function() {
+    document.getElementById('manualEntryModal').style.display = 'none';
+});
+
+document.getElementById('saveManualEntry').addEventListener('click', function() {
+    const foodName = document.getElementById('manualFoodName').value;
+    const carbs = parseFloat(document.getElementById('manualCarbs').value);
+    const protein = parseFloat(document.getElementById('manualProtein').value);
+    const fat = parseFloat(document.getElementById('manualFats').value);
+    const calories = parseFloat((carbs + protein)*4+(fat*9));
+    
+    const manualEntry = { food: foodName, macros: { carbs, protein, fat, calories } };
+    saveFoodData(manualEntry.food, manualEntry.macros);
+    console.log(manualEntry.macros);
+    displayEntries();
+    document.getElementById('manualEntryModal').style.display = 'none';
+});
 
 // Initial display
 displayEntries();

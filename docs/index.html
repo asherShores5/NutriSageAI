@@ -41,6 +41,20 @@
         <input type="text" id="foodInput" placeholder="Enter food item" maxlength="200" />
         <button id="addButton">Add</button>
         <button id="clearButton">Clear Day</button>
+        <button id="manualEntryButton">Manual Entry</button>
+
+        <div id="manualEntryModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Manual Food Entry</h2>
+                <input type="text" id="manualFoodName" placeholder="Food Name">
+                <input type="number" id="manualCarbs" placeholder="Carbs (g)">
+                <input type="number" id="manualProtein" placeholder="Protein (g)">
+                <input type="number" id="manualFats" placeholder="Fats (g)">
+                <button id="saveManualEntry">Save Entry</button>
+            </div>
+        </div>
+        
         <table id="entriesTable">
             <thead>
                 <tr>
