@@ -1,44 +1,23 @@
 document.getElementById('addButton').addEventListener('click', addFood);
 document.getElementById('clearButton').addEventListener('click', clearDay);
 
-let apiKey = localStorage.getItem('openaiApiKey');
-
-if (!apiKey) {
-    apiKey = prompt('Please enter your OpenAI API key:');
-    localStorage.setItem('openaiApiKey', apiKey);
-}
-
 async function getMacroData(foodItem) {
-    const openaiApiKey = localStorage.getItem('openaiApiKey');
     const requestOptions = {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiApiKey}`
+            'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [
-                {"role": "system", "content": "You are a helpful assistant, who responds in as few words as possible."},
-                {"role": "user", "content": `Give the estimated macros for ${foodItem} in JSON format: {carbs: <amount>, protein: <amount>, fat: <amount>, calories: <amount>}. Replace <amount> with the estimatd integer. Use only JSON, don't add any other text.`}
-            ]
-        })        
+        body: JSON.stringify({ foodItem })
     };
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', requestOptions);
+        const response = await fetch('arn:aws:apigateway:us-east-1::/apis/85sdnb7ok1/routes/7gi3ebo/getMacroData', requestOptions);
 
         if (!response.ok) {
             throw new Error(`API request failed: ${response.status}`);
         }
 
-        const data = await response.json();
-        const responseContent = data.choices[0].message.content.trim();
-        console.log(responseContent);
-        
-        // Assuming the response is in the format: "{carbs: 22, protein: 1, fat: 0, calories: 96}"
-        // Convert response string to JSON object
-        const macroData = JSON.parse(responseContent.replace(/(\w+):/g, '"$1":'));
+        const macroData = await response.json();
         return macroData;
     } catch (error) {
         console.error('Error fetching macro data:', error);
@@ -51,21 +30,11 @@ async function addFood() {
     document.getElementById('foodInput').value = '';
     if (foodItem) {
         try {
-            const macroDataResponse = await getMacroData(foodItem);
-
-            // Check the type of macroDataResponse
-            let macroData;
-            if (typeof macroDataResponse === 'string') {
-                macroData = JSON.parse(macroDataResponse); // Parse if it's a string
-            } else {
-                macroData = macroDataResponse; // Use directly if it's already an object
-            }
-
+            const macroData = await getMacroData(foodItem);
             saveFoodData(foodItem, macroData);
             displayEntries();
         } catch (error) {
             console.error('Error fetching macro data:', error);
-            // Handle the error appropriately
         }
     }
 }
