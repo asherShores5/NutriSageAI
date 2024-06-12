@@ -11,7 +11,7 @@ async function getMacroData(foodItem) {
     };
 
     try {
-        const response = await fetch('https://yb4t4lfr5a.execute-api.us-east-1.amazonaws.com/dev', requestOptions);
+        const response = await fetch('https://yb4t4lfr5a.execute-api.us-east-1.amazonaws.com/dev/getMacroData', requestOptions);
 
         if (!response.ok) {
             throw new Error(`API request failed: ${response.status}`);
