@@ -2,7 +2,10 @@
 ## Project Overview
 NutriSageAI is a web-based AI-enabled fitness and nutrition service. It helps users track their nutrition information, discover meal ideas, and receive personalized workout plans. NutriSageAI integrates with the GPT API to interpret unformatted natural language inputs from users, then retrieves and displays corresponding nutritional information.
 
-[Page](ashershores5.github.io/NutriSageAI/)
+[Test Site](ashershores5.github.io/NutriSageAI/) Currently requires an OpenAPI Key to use since this is just a demo
+
+![image](https://github.com/asherShores5/NutriSageAI/assets/71547146/393c3c4b-3d75-4f83-a535-4306ecbe26bf)
+
 
 ### Key Features
 Nutrition Tracker: Users can input their meals in unformatted natural language. The AI will process this input and return estimated nutrition information.
