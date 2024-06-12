@@ -8,10 +8,11 @@ NutriSageAI is a web-based AI-enabled fitness and nutrition service. It helps us
 
 
 ### Key Features
-Nutrition Tracker: Users can input their meals in unformatted natural language. The AI will process this input and return estimated nutrition information.
-Workout Planner: The AI can suggest workout ideas and plans tailored to each user's specific needs and goals.
-User Accounts: Users can register for an account to unlock additional features.
-Ad-Free Subscription: Registered users have the option to pay a small monthly fee for an ad-free experience.
+- Nutrition Tracker: Users can input their meals in unformatted natural language. The AI will process this input and return estimated nutrition information.
+
+### Planned Features
+- Workout Planner: The AI can suggest workout ideas and plans tailored to each user's specific needs and goals.
+- User Accounts: Users can register for an account to unlock additional features.
 
 ## Tech Stack
 This project is built with the following technologies:
