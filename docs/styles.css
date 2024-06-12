@@ -63,6 +63,11 @@ button:hover {
     display: block; /* Removes any inline spacing */
 }
 
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
 #entriesTable {
     width: 100%;
     border-collapse: collapse;
@@ -95,4 +100,17 @@ button:hover {
     cursor: pointer;
     border: none;
     background: none;
+}
+
+@media (max-width: 768px) {
+    #entriesTable th, #entriesTable td {
+        padding: 6px;
+    }
+}
+
+@media (max-width: 576px) {
+    #entriesTable th, #entriesTable td {
+        padding: 4px;
+        font-size: 12px;
+    }
 }

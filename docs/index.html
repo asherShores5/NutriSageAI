@@ -5,12 +5,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="MyApp">
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-
+    <link rel="apple-touch-icon" href="images/favicon_io/apple-touch-icon.png">
     <link rel="icon" type="image/x-icon" href="images/favicon_io/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NutriSageAI - Food Macro Tracker</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div id="banner">
@@ -40,21 +40,33 @@
         <input type="text" id="foodInput" placeholder="Enter food item" maxlength="20" />
         <button id="addButton">Add</button>
         <button id="clearButton">Clear Day</button>
-        <table id="entriesTable">
-            <thead>
-                <tr>
-                    <th>Food Item</th>
-                    <th>Carbs</th>
-                    <th>Protein</th>
-                    <th>Fats</th>
-                    <th>Calories</th>
-                    <th>Remove</th>
-                </tr>
-            </thead>
-            <tbody id="entries"></tbody>
-        </table>
-    </div>
+        <div class="table-container">
+            <table id="entriesTable">
+                <thead>
+                    <tr>
+                        <th>Food Item</th>
+                        <th>Carbs</th>
+                        <th>Protein</th>
+                        <th>Fats</th>
+                        <th>Calories</th>
+                        <th>Remove</th>
+                    </tr>
+                </thead>
+                <tbody id="entries"></tbody>
+            </table>
+        </div>
+    </div>    
     
     <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+            .then((registration) => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }).catch((error) => {
+                console.log('ServiceWorker registration failed: ', error);
+            });
+        }
+    </script>
 </body>
 </html>
