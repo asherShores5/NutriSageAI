@@ -1,13 +1,13 @@
 const CACHE_NAME = 'nutrisageai-cache-v1';
 const urlsToCache = [
     '/',
-    '/index.html',
-    '/styles.css',
-    '/script.js',
-    '/images/favicon_io/android-chrome-192x192.png',
-    '/images/favicon_io/android-chrome-512x512.png',
-    '/images/favicon_io/apple-touch-icon.png',
-    '/images/favicon_io/favicon.ico'
+    '/NutriSageAI/docs/index.html',
+    '/NutriSageAI/docs/styles.css',
+    '/NutriSageAI/docs/script.js',
+    '/NutriSageAI/docs/images/favicon_io/android-chrome-192x192.png',
+    '/NutriSageAI/docs/images/favicon_io/android-chrome-512x512.png',
+    '/NutriSageAI/docs/images/favicon_io/apple-touch-icon.png',
+    '/NutriSageAI/docs/images/favicon_io/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -15,7 +15,9 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME)
             .then((cache) => {
                 console.log('Opened cache');
-                return cache.addAll(urlsToCache);
+                return cache.addAll(urlsToCache).catch((error) => {
+                    console.error('Failed to add URLs to cache', error);
+                });
             })
     );
 });
