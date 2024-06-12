@@ -18,7 +18,7 @@ NutriSageAI is a web-based AI-enabled fitness and nutrition service. It helps us
 This project is built with the following technologies:
 
 1. Frontend: HTML, CSS, JavaScript
-2. Backend: Django
+2. Backend: Node.js
 3. Database: SQLite
 4. API: ChatGPT
 
