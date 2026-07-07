@@ -1,7 +1,7 @@
 """NutriSageAI macro estimator.
 
 Takes {"foodItem": "..."} and returns {"carbs","protein","fat","calories"} as numbers,
-estimated by Bedrock Claude. Deployed as a Lambda Function URL (CORS handled by the URL config).
+estimated by Bedrock Claude. Fronted by an HTTP API Gateway (CORS handled by the API config).
 """
 import json
 import os
@@ -35,6 +35,11 @@ def _macros(food_item):
 
 
 def handler(event, _context):
+    # Quick-create routes ANY /, so the CORS preflight (OPTIONS) reaches us too.
+    # API Gateway adds the CORS headers; we just need a 2xx with no body.
+    method = event.get("requestContext", {}).get("http", {}).get("method")
+    if method == "OPTIONS":
+        return _reply(204, None)
     try:
         raw = event.get("body") or "{}"
         food_item = (json.loads(raw).get("foodItem") or "").strip()
@@ -47,6 +52,8 @@ def handler(event, _context):
 
 
 def _reply(status, payload):
+    if payload is None:
+        return {"statusCode": status}
     return {
         "statusCode": status,
         "headers": {"Content-Type": "application/json"},

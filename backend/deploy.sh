@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-REGION="${AWS_REGION:-us-east-1}"
+REGION="us-east-1"  # all resources live here; ignore any AWS_REGION override
 FN="nutrisageai-macro"
 
 python -c "import zipfile; z=zipfile.ZipFile('function.zip','w',zipfile.ZIP_DEFLATED); z.write('lambda_function.py'); z.close()"
