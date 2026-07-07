@@ -2,6 +2,8 @@
     "name": "NutriSageAI",
     "short_name": "NutriSage",
     "description": "AI-enabled fitness and nutrition service.",
+    "id": "/NutriSageAI/docs/",
+    "scope": "/NutriSageAI/docs/",
     "start_url": "/NutriSageAI/docs/",
     "display": "standalone",
     "background_color": "#ffffff",

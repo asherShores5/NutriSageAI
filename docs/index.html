@@ -4,18 +4,26 @@
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="MyApp">
+    <meta name="apple-mobile-web-app-title" content="NutriSage">
     <link rel="apple-touch-icon" href="images/favicon_io/apple-touch-icon.png">
     <link rel="icon" type="image/x-icon" href="images/favicon_io/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3e4eb8">
+    <meta name="description" content="Track daily food macros with AI-estimated nutrition.">
     <title>NutriSageAI - Food Macro Tracker</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <div id="banner">
-        <img src="images/banner.jpg" alt="Banner Description">
-    </div>
+    <header id="banner">
+        <svg id="banner-mark" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M12 2C7 6 4 9 4 14a8 8 0 0 0 16 0c0-5-3-8-8-12Zm0 3.6c3.3 2.9 5 5.2 5 8.4a5 5 0 0 1-5 5V5.6Z"/>
+        </svg>
+        <div id="banner-text">
+            <h1>NutriSageAI</h1>
+            <p>Daily macro tracker</p>
+        </div>
+    </header>
     <div id="totalsSection">
         <h2>Daily Totals</h2>
         <div class="total">
@@ -37,9 +45,12 @@
     </div>
     <div id="foodEntriesSection">
         <h2>Food Entries</h2>
-        <input type="text" id="foodInput" placeholder="Enter food item" maxlength="20" />
-        <button id="addButton">Add</button>
-        <button id="clearButton">Clear Day</button>
+        <form id="foodForm">
+            <input type="text" id="foodInput" placeholder="Enter food item" maxlength="60" autocomplete="off" />
+            <button type="submit" id="addButton">Add</button>
+            <button type="button" id="clearButton">Clear Day</button>
+        </form>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
         <div class="table-container">
             <table id="entriesTable">
                 <thead>
@@ -57,6 +68,7 @@
         </div>
     </div>    
     
+    <script src="macros.js"></script>
     <script src="script.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

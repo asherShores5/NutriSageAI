@@ -8,19 +8,21 @@ NutriSageAI is a web-based AI-enabled fitness and nutrition service. It helps us
 
 
 ### Key Features
-- Nutrition Tracker: Users can input their meals in unformatted natural language. The AI will process this input and return estimated nutrition information.
+- Nutrition Tracker: Users can input their meals in unformatted natural language. The input is sent to an AI-backed API that returns estimated macros (carbs, protein, fat, calories). Entries and daily totals are saved locally in the browser.
 
-### Planned Features
-- Workout Planner: The AI can suggest workout ideas and plans tailored to each user's specific needs and goals.
-- User Accounts: Users can register for an account to unlock additional features.
+### Planned / Not Yet Built
+These are intended features that do **not** exist in the current codebase:
+- Workout Planner: AI-suggested workout ideas and plans.
+- User Accounts: registration and unlocking additional features.
+- Server-side persistence: saving data beyond the local browser (would require a backend + database).
 
 ## Tech Stack
-This project is built with the following technologies:
+The frontend is a **static, client-side-only Progressive Web App**. The macro backend is a single
+serverless function; its source lives in [backend/](backend/).
 
-1. Frontend: HTML, CSS, JavaScript
-2. Backend: Node.js
-3. Database: SQLite
-4. API: ChatGPT
+1. Frontend: HTML, CSS, JavaScript (vanilla), hosted on GitHub Pages (auto-deploy on push to `main`)
+2. Storage: browser `localStorage` (per-device, no accounts yet)
+3. Macro estimation: AWS Lambda + HTTP API Gateway, using Amazon Bedrock (Claude) — see [backend/README.md](backend/README.md)
 
 ## Contribute
 Contributions to NutriSageAI are always welcome! Here's how you can help:

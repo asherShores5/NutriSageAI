@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 keys.md
+# backend build artifact
+backend/function.zip
