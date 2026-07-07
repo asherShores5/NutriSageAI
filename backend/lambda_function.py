@@ -18,7 +18,10 @@ import os
 import re
 import boto3
 
-MODEL_ID = os.environ.get("MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+# Sonnet 4.5 over Haiku 4.5: this is a knowledge-recall task (branded/restaurant nutrition
+# facts), and Haiku systematically underestimated portions on brand items. Sonnet's recall is
+# far better and still cheap at family volume. Swap here (env var) if that ever changes.
+MODEL_ID = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
 TABLE = os.environ.get("DATA_TABLE", "nutrisageai-data")
 USER_SECRETS = json.loads(os.environ.get("USER_SECRETS", "{}"))  # {user: sha256hex}
 SHARED_PK = "household"  # shared meal library lives here
@@ -31,9 +34,13 @@ MAX_PAYLOAD_BYTES = 100_000  # cap a synced item (~a very long day) to bound wri
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 PROMPT = (
-    "Estimate the macronutrients for this food. Reply with ONLY a JSON object, no prose, "
-    "with numeric keys carbs, protein, fat (grams) and calories (kcal). "
-    "If the food is unrecognizable, use 0 for all. Food: "
+    "You are a nutrition estimator. Estimate macros for the food described. "
+    "If it names a brand, store, or restaurant item (Costco, CLIF, Chipotle, etc.), use that "
+    "product's ACTUAL published nutrition - these are usually larger than a generic portion, so "
+    "do not shrink them. Treat 'one whole X' as the entire item. Account for cooking oils, cheese, "
+    "sauces, and prep that add fat and calories. When unsure between portion sizes, choose the "
+    "larger realistic one. Reply with ONLY a JSON object, no prose, numeric keys carbs, protein, "
+    "fat (grams) and calories (kcal). If truly unrecognizable, use 0 for all. Food: "
 )
 
 

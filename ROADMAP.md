@@ -44,7 +44,7 @@ rather than adding Cognito or a new vendor — Cognito is overkill for a handful
   PK          SK            item
   asher       2026-07-07    { entries:[...], updatedAt }     ← a day's log
   asher       goals         { carbs, protein, fat, calories } ← current goals, synced
-  wife        2026-07-07    { entries:[...], updatedAt }
+  aubyn       2026-07-07    { entries:[...], updatedAt }
   household   meals         { library:[ {name, macros}, ...] } ← SHARED meal library
   ```
   Per-person days are private; `household/meals` is the shared library both read + append to (one-tap re-add).

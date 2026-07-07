@@ -1,5 +1,5 @@
 const API_URL = 'https://q8f8dfzb0j.execute-api.us-east-1.amazonaws.com';
-const PROFILES = ['asher', 'wife']; // add a family member here + a hash in the Lambda's USER_SECRETS
+const PROFILES = ['asher', 'aubyn']; // add a family member here + a hash in the Lambda's USER_SECRETS
 
 // ---- session + local cache --------------------------------------------------
 // localStorage is the working copy; the server is the sync layer.

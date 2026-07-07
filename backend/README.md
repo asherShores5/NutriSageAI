@@ -20,7 +20,7 @@ Consumed by [../docs/script.js](../docs/script.js) (`API_URL`).
 
 ### Auth
 
-Per-user shared secret. The env var `USER_SECRETS` holds only SHA-256 **hashes** (`{"asher":"<hex>","wife":"<hex>"}`).
+Per-user shared secret. The env var `USER_SECRETS` holds only SHA-256 **hashes** (`{"asher":"<hex>","aubyn":"<hex>"}`).
 The client sends the plaintext secret; the Lambda hashes it and constant-time compares. Secrets are handed to
 each person out-of-band and cached in their browser's localStorage — never committed to the repo.
 
