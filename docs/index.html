@@ -23,61 +23,86 @@
             <h1>NutriSageAI</h1>
             <p>Daily macro tracker</p>
         </div>
+        <button type="button" id="whoami" hidden></button>
     </header>
-    <div id="totalsSection">
-        <h2>Daily Totals</h2>
-        <div class="total">
-            <span class="label">Carbs:</span>
-            <span id="totalCarbs">0g</span>
-        </div>
-        <div class="total">
-            <span class="label">Protein:</span>
-            <span id="totalProtein">0g</span>
-        </div>
-        <div class="total">
-            <span class="label">Fats:</span>
-            <span id="totalFats">0g</span>
-        </div>
-        <div class="total">
-            <span class="label">Calories:</span>
-            <span id="totalCalories">0</span>
-        </div>
-    </div>
-    <div id="foodEntriesSection">
-        <h2>Food Entries</h2>
-        <form id="foodForm">
-            <input type="text" id="foodInput" placeholder="Enter food item" maxlength="60" autocomplete="off" />
-            <button type="submit" id="addButton">Add</button>
-            <button type="button" id="clearButton">Clear Day</button>
+
+    <!-- Login: pick a profile, paste secret once -->
+    <section id="loginSection">
+        <h2>Who's tracking?</h2>
+        <div id="profilePicker"></div>
+        <form id="loginForm" hidden>
+            <p id="loginName" class="login-name"></p>
+            <input type="password" id="secretInput" placeholder="Access key" autocomplete="off" />
+            <button type="submit">Continue</button>
+            <button type="button" id="loginBack">Back</button>
         </form>
-        <p id="status" class="status" role="status" aria-live="polite"></p>
-        <div class="table-container">
-            <table id="entriesTable">
-                <thead>
-                    <tr>
-                        <th>Food Item</th>
-                        <th>Carbs</th>
-                        <th>Protein</th>
-                        <th>Fats</th>
-                        <th>Calories</th>
-                        <th>Remove</th>
-                    </tr>
-                </thead>
-                <tbody id="entries"></tbody>
-            </table>
+        <p id="loginStatus" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- App: everything below is shown only after login -->
+    <main id="appSection" hidden>
+        <div id="dateNav">
+            <button type="button" id="prevDay" aria-label="Previous day">‹</button>
+            <input type="date" id="dateInput" />
+            <button type="button" id="nextDay" aria-label="Next day">›</button>
+            <button type="button" id="todayBtn">Today</button>
         </div>
-    </div>    
-    
+
+        <section id="totalsSection">
+            <h2>Daily Progress</h2>
+            <div id="progressBars"></div>
+        </section>
+
+        <section id="weekSection">
+            <h2>This Week</h2>
+            <div id="weekBars"></div>
+        </section>
+
+        <section id="foodEntriesSection">
+            <h2>Food Entries</h2>
+            <form id="foodForm">
+                <input type="text" id="foodInput" placeholder="Enter food item" maxlength="60" autocomplete="off" />
+                <button type="submit" id="addButton">Add</button>
+                <button type="button" id="clearButton">Clear Day</button>
+            </form>
+            <p id="status" class="status" role="status" aria-live="polite"></p>
+
+            <div id="favorites">
+                <h3>Quick add</h3>
+                <div id="favoriteChips"></div>
+            </div>
+
+            <div class="table-container">
+                <table id="entriesTable">
+                    <thead>
+                        <tr>
+                            <th>Food Item</th><th>Carbs</th><th>Protein</th><th>Fats</th><th>Calories</th><th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="entries"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="goalsSection">
+            <h2>Daily Goals</h2>
+            <form id="goalsForm">
+                <label>Carbs <input type="number" id="goalCarbs" min="0" /></label>
+                <label>Protein <input type="number" id="goalProtein" min="0" /></label>
+                <label>Fat <input type="number" id="goalFat" min="0" /></label>
+                <label>Calories <input type="number" id="goalCalories" min="0" /></label>
+                <button type="submit">Save goals</button>
+            </form>
+            <p id="goalsStatus" class="status" role="status" aria-live="polite"></p>
+        </section>
+    </main>
+
     <script src="macros.js"></script>
     <script src="script.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
-            .then((registration) => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            }).catch((error) => {
-                console.log('ServiceWorker registration failed: ', error);
-            });
+                .catch((error) => console.log('ServiceWorker registration failed: ', error));
         }
     </script>
 </body>

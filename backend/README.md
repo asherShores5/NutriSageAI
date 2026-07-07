@@ -1,19 +1,36 @@
 # NutriSageAI Backend
 
-A single AWS Lambda that estimates food macros with Amazon Bedrock (Claude Haiku 4.5) and returns
-`{carbs, protein, fat, calories}`. Fronted by an HTTP API Gateway. No external API keys — auth is IAM.
+A single AWS Lambda behind an HTTP API Gateway. Two jobs: estimate food macros with Amazon Bedrock,
+and sync each family member's data across devices via DynamoDB. Bedrock auth is IAM; data-sync auth is a
+per-user shared secret. No external API keys.
 
-## Live endpoint
+## Routes
 
-`POST https://q8f8dfzb0j.execute-api.us-east-1.amazonaws.com/`
-Body: `{"foodItem": "1 medium banana"}` → `{"carbs":27.0,"protein":1.0,"fat":0.0,"calories":105.0}`
+All three hit the same Lambda (the HTTP API's `$default` route sends everything here). Base URL:
+`https://q8f8dfzb0j.execute-api.us-east-1.amazonaws.com`
+
+| Route | Auth | Body → Response |
+|---|---|---|
+| `POST /` | none | `{"foodItem":"1 medium banana"}` → `{"carbs":27,"protein":1,"fat":0,"calories":105}` |
+| `POST /pull` | secret | `{"user","secret"}` → `{"days":{date:{entries,updatedAt}}, "goals":{...}, "meals":[...]}` |
+| `POST /push` | secret | `{"user","secret","item":{...}}` → `{"ok":true}` — `item.type` is `day` \| `goals` \| `meals` |
+| `OPTIONS *` | — | `204` (CORS preflight) |
 
 Consumed by [../docs/script.js](../docs/script.js) (`API_URL`).
+
+### Auth
+
+Per-user shared secret. The env var `USER_SECRETS` holds only SHA-256 **hashes** (`{"asher":"<hex>","wife":"<hex>"}`).
+The client sends the plaintext secret; the Lambda hashes it and constant-time compares. Secrets are handed to
+each person out-of-band and cached in their browser's localStorage — never committed to the repo.
+
+**Add / rotate a user:** generate a random secret, `sha256` it, and update the `USER_SECRETS` env var on the Lambda
+(and add the name to `PROFILES` in the frontend). New user = new `pk`, no table change.
 
 ## Redeploy code changes
 
 ```bash
-./deploy.sh          # packages lambda_function.py and updates the function
+./deploy.sh          # packages lambda_function.py and updates the function (pinned to us-east-1)
 ```
 
 ## Resources (account 334772842524, us-east-1)
@@ -21,9 +38,11 @@ Consumed by [../docs/script.js](../docs/script.js) (`API_URL`).
 | Resource | Name |
 |---|---|
 | Lambda | `nutrisageai-macro` (python3.12, handler `lambda_function.handler`) |
-| IAM role | `nutrisageai-macro-role` — `bedrock:InvokeModel` on the Haiku model + basic logging |
+| DynamoDB | `nutrisageai-data` (on-demand). `pk=user, sk=date\|goals`; shared library at `pk=household, sk=meals`. Row body is a JSON string in `data`. |
+| IAM role | `nutrisageai-macro-role` — `bedrock:InvokeModel` on the Haiku model + `GetItem`/`PutItem`/`Query` on `nutrisageai-data` + logging |
 | HTTP API | `nutrisageai-api` (id `q8f8dfzb0j`), CORS-locked to the GitHub Pages origin + localhost:8000 |
 | Model | `us.anthropic.claude-haiku-4-5-20251001-v1:0` (Bedrock inference profile) |
+| Env vars | `MODEL_ID`, `DATA_TABLE`, `USER_SECRETS` (hashes only) |
 
 ## Abuse / cost controls
 

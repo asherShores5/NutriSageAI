@@ -25,14 +25,62 @@ Guiding constraint: **stay serverless and client-side.** Accounts + server-side 
 - [ ] **Multi-day history** — keep prior days in `localStorage` (still no backend) with a date switcher. This is the natural stepping stone before accounts.
 - [ ] **Better model prompt** — return a confidence or "couldn't identify" signal so the UI can flag guesses, rather than silently returning zeros.
 
-## Phase 3 — accounts + saved data (deferred, high effort)
+## Phase 3 — multi-user sync + shared data (IN PROGRESS)
 
-Only start when there's a concrete need to sync across devices or share data. Options, cheapest first:
+Decision made: it's a family tool (2 people now, maybe more), used across phone + laptop, so cross-device
+sync now justifies a backend. Staying on the existing AWS footprint (extend the Lambda + one DynamoDB table)
+rather than adding Cognito or a new vendor — Cognito is overkill for a handful of trusted users.
 
-- **Static-friendly auth + storage**: a hosted BaaS (e.g. a serverless auth + document store) keeps the "no server to run" property. Least new infra.
-- **Extend the existing AWS footprint**: Cognito (auth) + DynamoDB (per-user entries) + a couple more Lambda routes on the same HTTP API. More control, more to operate.
+### Design
 
-Migration note: today's `localStorage['foodEntries']` shape (`[{food, macros:{carbs,protein,fat,calories}}]`) is what any sync layer must import — keep it stable, or write a one-time migration.
+- **Auth = per-user shared secret (not a browser-side check).** A client-side "login" gates nothing —
+  `script.js` is public and the DynamoDB-backed endpoint is public. The *Lambda* is the gate: each person
+  has a random secret; only its SHA-256 hash is stored server-side (env var `USER_SECRETS`). "Login" = pick
+  your name → paste the secret once → cached in localStorage. Every data request sends `{user, secret}`; the
+  Lambda hashes + compares before touching the table. No passwords, no Cognito, no reset flow. Secrets are
+  **never** committed to the repo (same rule as `keys.md`).
+- **One DynamoDB table `nutrisageai-data`, on-demand billing** (pennies at family scale, mostly free tier):
+  ```
+  PK          SK            item
+  asher       2026-07-07    { entries:[...], updatedAt }     ← a day's log
+  asher       goals         { carbs, protein, fat, calories } ← current goals, synced
+  wife        2026-07-07    { entries:[...], updatedAt }
+  household   meals         { library:[ {name, macros}, ...] } ← SHARED meal library
+  ```
+  Per-person days are private; `household/meals` is the shared library both read + append to (one-tap re-add).
+  Adding a family member later = a new PK, no schema change.
+- **Shared-data model chosen: separate logs + shared meal library.** Each person logs their own day; both
+  pull from and add to a common "meals we make" pool.
+- **Same Lambda, path-routed:** keep `POST /` (macros); add `GET /data` + `PUT /data` (secret-gated sync).
+- **Conflict strategy: last-write-wins per day.** Each save writes the whole day with `updatedAt`; editing the
+  same date on two devices means the later save wins. `// ponytail: LWW per day; per-entry merge only if it
+  ever actually collides.` Real merge is a lot of code for a problem two people rarely hit.
+- **localStorage stays the working copy** (instant, offline-friendly); the server is the sync layer.
+  Online write-through first; add an offline queue only if the pain is felt.
+
+### Build order (each phase independently usable)
+
+**Phase A — backend sync (new infra):**
+- [ ] DynamoDB table `nutrisageai-data` (on-demand) + extend IAM role (read/write that one table).
+- [ ] Generate 2 secrets; store SHA-256 hashes in Lambda env var `USER_SECRETS`; hand secrets over out-of-band.
+- [ ] Lambda: path routing + auth check + `GET /data` / `PUT /data`; `user=household` for the shared library.
+
+**Phase B — frontend login + sync:**
+- [ ] Profile picker → paste-secret-once → cached in localStorage.
+- [ ] Write-through save + load-on-open; localStorage remains the working copy.
+
+**Phase C — the daily-tool features (mostly frontend, now that data syncs):**
+- [ ] Multi-day history + date navigation.
+- [ ] Favorites/recent + shared meal library (one-tap re-add).
+- [ ] Per-person goals (synced) + **daily & weekly progress bars**.
+
+### Deferred within Phase 3 (YAGNI until felt)
+
+- Family-member management UI — adding a member is a config row, not an admin screen.
+- Offline write queue / real per-entry merge / realtime push.
+
+Migration note: the pre-sync `localStorage['foodEntries']` shape (`[{food, macros:{...}}]`) is imported as
+today's day on first login.
 
 ## Explicitly NOT doing (YAGNI)
 

@@ -6,32 +6,17 @@ body {
     padding: 20px;
 }
 
-#totalsSection {
+/* Card sections */
+#totalsSection, #weekSection, #foodEntriesSection, #goalsSection, #loginSection {
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
-.total {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    padding: 10px;
-    background-color: #f0f0f0;
-    border-radius: 4px;
-}
-
-.label {
-    font-weight: bold;
-}
-
-#foodEntriesSection {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+section h2 {
+    margin-top: 0;
 }
 
 input, button {
@@ -154,3 +139,82 @@ button:disabled {
         font-size: 12px;
     }
 }
+
+/* whoami / sign-out chip in the banner */
+#whoami {
+    margin: 0 0 0 auto;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    text-transform: capitalize;
+}
+#whoami:hover { background: rgba(255, 255, 255, 0.35); }
+
+/* Login */
+.profile-btn {
+    text-transform: capitalize;
+    min-width: 120px;
+    font-size: 1.1rem;
+}
+.login-name { text-transform: capitalize; font-weight: bold; margin: 0 0 6px; }
+
+/* Date navigation */
+#dateNav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+#dateNav input[type="date"] { color: #333; }
+#prevDay, #nextDay { font-size: 1.2rem; line-height: 1; padding: 8px 14px; }
+
+/* Progress bars */
+.bar { margin-bottom: 12px; text-align: left; }
+.bar-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+.bar-track {
+    background: #eee;
+    border-radius: 999px;
+    height: 12px;
+    overflow: hidden;
+}
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3e4eb8, #5a6bd8);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+.bar-fill.over { background: linear-gradient(90deg, #c0392b, #e05a4a); }
+
+/* Favorites / quick-add chips */
+#favorites { margin-top: 16px; text-align: left; }
+#favorites h3 { margin: 0 0 8px; font-size: 1rem; }
+#favoriteChips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+    margin: 0;
+    padding: 6px 12px;
+    background: #eef0fb;
+    color: #3e4eb8;
+    border-radius: 999px;
+    font-size: 0.85rem;
+}
+.chip:hover { background: #dfe3f9; color: #2c3a9e; }
+.muted { color: #888; font-size: 0.85rem; }
+
+/* Goals form */
+#goalsForm { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+#goalsForm label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: #555;
+    align-items: flex-start;
+}
+#goalsForm input { width: 80px; margin: 4px 0; }
