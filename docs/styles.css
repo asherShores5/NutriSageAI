@@ -1,220 +1,251 @@
+/* ---- design tokens ---- */
+:root {
+    --bg: #f4f5fa;
+    --card: #ffffff;
+    --text: #1c1e26;
+    --muted: #6b7280;
+    --border: #e4e6ef;
+    --track: #e9ebf3;
+    --brand: #3e4eb8;
+    --brand-2: #5a6bd8;
+    --brand-soft: #eef0fb;
+    --danger: #c0392b;
+    --shadow: 0 2px 10px rgba(30, 34, 90, 0.08);
+    --radius: 14px;
+}
+:root[data-theme="dark"], html[data-theme="dark"] {
+    --bg: #14151f;
+    --card: #1e2030;
+    --text: #e6e7ef;
+    --muted: #9aa0b4;
+    --border: #2c2f42;
+    --track: #2c2f42;
+    --brand: #7a8bff;
+    --brand-2: #9aa8ff;
+    --brand-soft: #262a44;
+    --danger: #ff6b5c;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #14151f; --card: #1e2030; --text: #e6e7ef; --muted: #9aa0b4;
+        --border: #2c2f42; --track: #2c2f42; --brand: #7a8bff; --brand-2: #9aa8ff;
+        --brand-soft: #262a44; --danger: #ff6b5c; --shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+}
+
+* { box-sizing: border-box; }
+
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background-color: #f4f4f4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
     margin: 0;
-    padding: 20px;
+    padding: 0 0 84px; /* room for the fixed tab bar */
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Card sections */
-#totalsSection, #weekSection, #foodEntriesSection, #goalsSection, #loginSection {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-}
+.app-wrap, #appSection, #loginSection { max-width: 640px; margin: 0 auto; }
+#appSection, #loginSection { padding: 0 14px; }
 
-section h2 {
-    margin-top: 0;
-}
-
-input, button {
-    margin: 10px;
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-}
-
-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
+/* ---- banner ---- */
 #banner {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 20px;
-    margin: -20px -20px 30px; /* bleed to viewport edges, over body padding */
-    background: linear-gradient(135deg, #3e4eb8, #5a6bd8);
+    gap: 12px;
+    padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
     color: #fff;
-    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
-
-#banner-mark {
-    flex: 0 0 auto;
-    color: #fff;
-}
-
-#banner-text h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    line-height: 1.1;
-}
-
-#banner-text p {
-    margin: 2px 0 0;
-    font-size: 0.85rem;
-    opacity: 0.85;
-}
-
-#foodForm {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-}
-
-button:disabled {
-    background-color: #9ec5fe;
-    cursor: not-allowed;
-}
-
-.status {
-    min-height: 1.2em;
-    margin: 0 0 10px;
-    color: #555;
-    font-size: 14px;
-}
-
-.status.error {
-    color: #b00020;
-}
-
-.table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-}
-
-#entriesTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-#entriesTable, #entriesTable th, #entriesTable td {
-    border: 1px solid #ddd;
-}
-
-#entriesTable th, #entriesTable td {
-    padding: 8px;
-    text-align: left;
-}
-
-#entriesTable th {
-    background-color: #f2f2f2;
-}
-
-#entriesTable tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-#entriesTable tr:hover {
-    background-color: #eaeaea;
-}
-
-.remove-btn {
-    color: red;
-    cursor: pointer;
-    border: none;
-    background: none;
-}
-
-@media (max-width: 768px) {
-    #entriesTable th, #entriesTable td {
-        padding: 6px;
-    }
-}
-
-@media (max-width: 576px) {
-    #entriesTable th, #entriesTable td {
-        padding: 4px;
-        font-size: 12px;
-    }
-}
-
-/* whoami / sign-out chip in the banner */
+#banner-mark { flex: 0 0 auto; color: #fff; }
+#banner-text h1 { margin: 0; font-size: 1.25rem; line-height: 1.1; }
+#banner-text p { margin: 1px 0 0; font-size: 0.8rem; opacity: 0.85; }
 #whoami {
-    margin: 0 0 0 auto;
-    padding: 6px 12px;
+    margin-left: auto;
+    padding: 6px 14px;
     background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: none;
     border-radius: 999px;
     font-size: 0.85rem;
     text-transform: capitalize;
+    cursor: pointer;
 }
-#whoami:hover { background: rgba(255, 255, 255, 0.35); }
+#whoami:hover { background: rgba(255, 255, 255, 0.32); }
 
-/* Login */
-.profile-btn {
-    text-transform: capitalize;
-    min-width: 120px;
-    font-size: 1.1rem;
+/* ---- cards ---- */
+.card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin: 14px 0;
 }
-.login-name { text-transform: capitalize; font-weight: bold; margin: 0 0 6px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.card h2 { margin: 0 0 12px; font-size: 1.1rem; }
+.card-head h2 { margin: 0; }
+h3 { font-size: 0.95rem; margin: 16px 0 8px; color: var(--muted); }
+.muted { color: var(--muted); font-size: 0.85rem; }
 
-/* Date navigation */
+/* ---- inputs & buttons ---- */
+input, button, select {
+    font: inherit;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 11px 13px;
+}
+input, select { background: var(--card); color: var(--text); width: 100%; }
+input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
+
+button {
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: filter 0.15s ease;
+}
+button:hover { filter: brightness(1.08); }
+button:active { filter: brightness(0.94); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+button.ghost {
+    background: transparent;
+    color: var(--brand);
+    border: 1px solid var(--border);
+}
+button.ghost:hover { background: var(--brand-soft); }
+button.ghost.danger, button.icon-btn.danger { color: var(--danger); }
+button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
+.row { display: flex; gap: 10px; align-items: center; }
+.row.wrap { flex-wrap: wrap; }
+
+/* ---- login ---- */
+#loginSection { margin-top: 16px; text-align: center; }
+#profilePicker { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.profile-btn { text-transform: capitalize; min-width: 120px; padding: 14px 18px; font-size: 1.05rem; }
+.profile-btn.active { outline: 2px solid var(--brand); }
+#loginForm { display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 8px auto 0; }
+#loginForm .row { justify-content: center; }
+.login-name { text-transform: capitalize; font-weight: 700; margin: 0; }
+
+/* ---- date nav ---- */
 #dateNav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 0 0;
 }
-#dateNav input[type="date"] { color: #333; }
-#prevDay, #nextDay { font-size: 1.2rem; line-height: 1; padding: 8px 14px; }
+#dateNav input[type="date"] { flex: 1; text-align: center; }
+#prevDay, #nextDay { flex: 0 0 auto; width: 44px; font-size: 1.3rem; line-height: 1; padding: 10px 0; }
+#todayBtn { flex: 0 0 auto; }
 
-/* Progress bars */
-.bar { margin-bottom: 12px; text-align: left; }
-.bar-head {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    margin-bottom: 4px;
-}
-.bar-track {
-    background: #eee;
-    border-radius: 999px;
-    height: 12px;
-    overflow: hidden;
-}
+/* ---- add-food form ---- */
+#foodForm { display: flex; gap: 8px; }
+#foodForm input { flex: 1; }
+#foodForm button { flex: 0 0 auto; padding-left: 20px; padding-right: 20px; }
+
+/* ---- status ---- */
+.status { min-height: 1.1em; margin: 8px 0 0; color: var(--muted); font-size: 0.85rem; }
+.status.error { color: var(--danger); }
+
+/* ---- progress bars ---- */
+.bar { margin-bottom: 14px; }
+.bar:last-child { margin-bottom: 0; }
+.bar-head { display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 5px; }
+.bar-track { background: var(--track); border-radius: 999px; height: 12px; overflow: hidden; }
 .bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #3e4eb8, #5a6bd8);
+    background: linear-gradient(90deg, var(--brand), var(--brand-2));
     border-radius: 999px;
-    transition: width 0.3s ease;
+    transition: width 0.35s ease;
+    min-width: 2px;
 }
-.bar-fill.over { background: linear-gradient(90deg, #c0392b, #e05a4a); }
+.bar-fill.over { background: linear-gradient(90deg, var(--danger), #e0745a); }
 
-/* Favorites / quick-add chips */
-#favorites { margin-top: 16px; text-align: left; }
-#favorites h3 { margin: 0 0 8px; font-size: 1rem; }
+/* ---- favorites chips ---- */
+#favorites { margin-top: 16px; }
 #favoriteChips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
-    margin: 0;
-    padding: 6px 12px;
-    background: #eef0fb;
-    color: #3e4eb8;
+    padding: 7px 13px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    border: none;
     border-radius: 999px;
     font-size: 0.85rem;
+    font-weight: 500;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.chip:hover { background: #dfe3f9; color: #2c3a9e; }
-.muted { color: #888; font-size: 0.85rem; }
+.chip:hover { filter: brightness(0.97); }
 
-/* Goals form */
-#goalsForm { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
-#goalsForm label {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.8rem;
-    color: #555;
-    align-items: flex-start;
+/* ---- entry list ---- */
+.entry-list { list-style: none; margin: 0; padding: 0; }
+.entry {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
 }
-#goalsForm input { width: 80px; margin: 4px 0; }
+.entry:last-child { border-bottom: none; }
+.entry.empty, .entry-list .empty { justify-content: center; padding: 20px 0; border: none; }
+.entry-main { flex: 1; min-width: 0; }
+.entry-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.entry-macros { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+.entry-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+.icon-btn {
+    background: transparent; color: var(--muted);
+    border: none; padding: 8px; width: 38px; height: 38px;
+    border-radius: 9px; font-size: 1rem; line-height: 1;
+}
+.icon-btn:hover { background: var(--brand-soft); color: var(--brand); filter: none; }
+.entry.editing { display: block; }
+.edit-row { display: flex; gap: 8px; }
+.edit-row input { flex: 1; }
+.edit-row button { flex: 0 0 auto; }
+
+/* ---- goals form ---- */
+#goalsForm { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#goalsForm label { display: flex; flex-direction: column; gap: 5px; font-size: 0.8rem; color: var(--muted); }
+#goalsForm button { grid-column: 1 / -1; }
+
+/* ---- profile ---- */
+.seg { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.seg select { width: auto; }
+.keyrow { justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.keyrow:last-child { border-bottom: none; }
+.keyrow span { font-size: 0.9rem; }
+#switchList .profile-btn { min-width: 100px; padding: 10px 16px; }
+
+/* ---- bottom tab bar ---- */
+#tabBar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 20;
+}
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    border-radius: 0;
+    padding: 12px 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-top: 2px solid transparent;
+}
+.tab-btn:hover { filter: none; background: var(--brand-soft); }
+.tab-btn.active { color: var(--brand); border-top-color: var(--brand); background: transparent; }
+
+/* ---- wider screens ---- */
+@media (min-width: 560px) {
+    #goalsForm { grid-template-columns: repeat(4, 1fr); }
+    #goalsForm button { grid-column: 1 / -1; justify-self: start; padding-left: 28px; padding-right: 28px; }
+}

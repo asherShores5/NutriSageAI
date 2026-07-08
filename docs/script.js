@@ -1,25 +1,33 @@
 const API_URL = 'https://q8f8dfzb0j.execute-api.us-east-1.amazonaws.com';
 const PROFILES = ['asher', 'aubyn']; // add a family member here + a hash in the Lambda's USER_SECRETS
 
-// ---- session + local cache --------------------------------------------------
-// localStorage is the working copy; the server is the sync layer.
-// Per-user cache key so two profiles on one device don't clobber each other.
-let session = null; // { user, secret }
+const el = (id) => document.getElementById(id);
+
+// ---- device keyring ---------------------------------------------------------
+// Every profile authenticated on THIS device is remembered here, so switching
+// profiles never re-asks for a key. Shape: { user: secret }.
+function keyring() {
+    try { return JSON.parse(localStorage.getItem('nutri:keys')) || {}; } catch { return {}; }
+}
+function rememberKey(user, secret) {
+    const ks = keyring(); ks[user] = secret;
+    localStorage.setItem('nutri:keys', JSON.stringify(ks));
+}
+function forgetKey(user) {
+    const ks = keyring(); delete ks[user];
+    localStorage.setItem('nutri:keys', JSON.stringify(ks));
+}
+
+// ---- session + per-user local cache ----------------------------------------
+let session = null;                       // { user, secret }
 let selectedDate = dateKey(new Date());
 
 function cacheKey() { return `nutri:${session.user}`; }
-
 function loadCache() {
-    try {
-        return JSON.parse(localStorage.getItem(cacheKey())) || { days: {}, goals: {}, meals: [] };
-    } catch {
-        return { days: {}, goals: {}, meals: [] };
-    }
+    try { return JSON.parse(localStorage.getItem(cacheKey())) || { days: {}, goals: {}, meals: [] }; }
+    catch { return { days: {}, goals: {}, meals: [] }; }
 }
-
-function saveCache(state) {
-    localStorage.setItem(cacheKey(), JSON.stringify(state));
-}
+function saveCache(state) { localStorage.setItem(cacheKey(), JSON.stringify(state)); }
 
 // ---- server sync ------------------------------------------------------------
 async function api(path, payload) {
@@ -31,70 +39,69 @@ async function api(path, payload) {
     if (!resp.ok) throw new Error(`${path} ${resp.status}`);
     return resp.json();
 }
-
 async function pull() {
     const data = await api('/pull', { user: session.user, secret: session.secret });
     saveCache(data);
     return data;
 }
-
-// Write-through: update local first (instant), then best-effort sync to server.
 async function pushItem(item) {
-    try {
-        await api('/push', { user: session.user, secret: session.secret, item });
-        return true;
-    } catch (e) {
-        console.error('sync failed', e);
-        return false; // local cache already updated; user keeps working offline
-    }
+    try { await api('/push', { user: session.user, secret: session.secret, item }); return true; }
+    catch (e) { console.error('sync failed', e); return false; } // local already saved; offline-ok
 }
 
-// ---- login ------------------------------------------------------------------
-const el = (id) => document.getElementById(id);
-
+// ---- login / keyring boot ---------------------------------------------------
 function initLogin() {
-    const picker = el('profilePicker');
-    picker.replaceChildren();
-    PROFILES.forEach((name) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'profile-btn';
-        btn.textContent = name;
-        btn.addEventListener('click', () => showSecretForm(name));
-        picker.appendChild(btn);
-    });
+    applyTheme(localStorage.getItem('nutri:theme') || 'system');
+    renderProfilePicker();
 
     el('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const user = el('loginForm').dataset.user;
-        const secret = el('secretInput').value.trim();
-        if (!secret) return;
-        setText('loginStatus', 'Signing in…');
-        try {
-            session = { user, secret };
-            await pull(); // validates the secret (401 throws)
-            localStorage.setItem('nutri:session', JSON.stringify(session));
-            startApp();
-        } catch {
-            session = null;
-            setText('loginStatus', 'Wrong access key. Try again.', true);
-        }
+        await attemptLogin(el('loginForm').dataset.user, el('secretInput').value.trim(), true);
     });
-
     el('loginBack').addEventListener('click', () => {
         el('loginForm').hidden = true;
         el('profilePicker').hidden = false;
         setText('loginStatus', '');
     });
 
-    // auto-resume a saved session
+    // Auto-resume: last active profile whose key is on this device.
+    const active = localStorage.getItem('nutri:active');
+    const ks = keyring();
+    if (active && ks[active]) attemptLogin(active, ks[active], false);
+}
+
+function renderProfilePicker() {
+    const picker = el('profilePicker');
+    picker.replaceChildren();
+    const ks = keyring();
+    PROFILES.forEach((name) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'profile-btn';
+        btn.textContent = ks[name] ? name : `${name} 🔑`; // 🔑 = will ask for key
+        btn.title = ks[name] ? 'Signed-in on this device' : 'First sign-in on this device';
+        btn.addEventListener('click', () => {
+            if (ks[name]) attemptLogin(name, ks[name], false);
+            else showSecretForm(name);
+        });
+        picker.appendChild(btn);
+    });
+}
+
+async function attemptLogin(user, secret, fromForm) {
+    if (!secret) return;
+    setText('loginStatus', 'Signing in…');
+    session = { user, secret };
     try {
-        const saved = JSON.parse(localStorage.getItem('nutri:session'));
-        if (saved && PROFILES.includes(saved.user)) {
-            session = saved;
-            pull().then(startApp).catch(() => { session = null; }); // stale/rotated secret → fall back to picker
-        }
-    } catch { /* no saved session */ }
+        await pull();                       // validates the key (401 throws)
+        rememberKey(user, secret);          // keyring: never ask again on this device
+        localStorage.setItem('nutri:active', user);
+        startApp();
+    } catch {
+        session = null;
+        if (fromForm) { setText('loginStatus', 'Wrong access key. Try again.', true); }
+        else { forgetKey(user); renderProfilePicker(); setText('loginStatus', 'Saved key was invalid — enter it again.', true); }
+    }
 }
 
 function showSecretForm(name) {
@@ -107,12 +114,6 @@ function showSecretForm(name) {
     el('secretInput').focus();
 }
 
-function logout() {
-    localStorage.removeItem('nutri:session');
-    session = null;
-    location.reload();
-}
-
 // ---- app boot ---------------------------------------------------------------
 function startApp() {
     el('loginSection').hidden = true;
@@ -120,15 +121,18 @@ function startApp() {
     const who = el('whoami');
     who.hidden = false;
     who.textContent = session.user;
-    who.title = 'Sign out';
-    who.addEventListener('click', logout, { once: true });
+    who.title = 'Go to profile';
+    who.onclick = () => switchTab('profile');
 
     el('dateInput').value = selectedDate;
     wireAppEvents();
     render();
 }
 
+let eventsWired = false;
 function wireAppEvents() {
+    if (eventsWired) return;              // survive profile switches (startApp re-runs)
+    eventsWired = true;
     el('foodForm').addEventListener('submit', (e) => { e.preventDefault(); addFood(); });
     el('clearButton').addEventListener('click', clearDay);
     el('prevDay').addEventListener('click', () => shiftDay(-1));
@@ -136,10 +140,21 @@ function wireAppEvents() {
     el('todayBtn').addEventListener('click', () => { selectedDate = dateKey(new Date()); el('dateInput').value = selectedDate; render(); });
     el('dateInput').addEventListener('change', (e) => { if (e.target.value) { selectedDate = e.target.value; render(); } });
     el('goalsForm').addEventListener('submit', (e) => { e.preventDefault(); saveGoals(); });
+    el('themeSelect').addEventListener('change', (e) => { applyTheme(e.target.value); localStorage.setItem('nutri:theme', e.target.value); });
+    el('exportBtn').addEventListener('click', exportData);
+    el('refreshBtn').addEventListener('click', async () => { setText('goalsStatus', ''); await pull(); render(); });
+    document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+}
+
+// ---- tabs -------------------------------------------------------------------
+function switchTab(name) {
+    document.querySelectorAll('.tab-panel').forEach((p) => { p.hidden = p.id !== `tab-${name}`; });
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+    if (name === 'profile') renderProfileTab();
+    window.scrollTo(0, 0);
 }
 
 function shiftDay(delta) {
-    const keys = weekKeys(selectedDate); // reuse date math; take yesterday/tomorrow
     const [y, m, d] = selectedDate.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
     dt.setDate(dt.getDate() + delta);
@@ -148,12 +163,10 @@ function shiftDay(delta) {
     render();
 }
 
-// ---- data access on the current cache --------------------------------------
+// ---- day data ---------------------------------------------------------------
 function currentEntries() {
-    const state = loadCache();
-    return (state.days[selectedDate] || {}).entries || [];
+    return (loadCache().days[selectedDate] || {}).entries || [];
 }
-
 function setDayEntries(entries) {
     const state = loadCache();
     state.days[selectedDate] = { entries, updatedAt: new Date().toISOString() };
@@ -197,7 +210,6 @@ function addEntry(entry) {
     setDayEntries(entries);
     render();
 }
-
 function removeEntry(index) {
     const entries = currentEntries();
     entries.splice(index, 1);
@@ -205,18 +217,40 @@ function removeEntry(index) {
     render();
 }
 
+// Edit: re-estimate the corrected description and replace the row in place.
+async function saveEdit(index, newFood, statusNode) {
+    newFood = newFood.trim();
+    if (!newFood) return;
+    statusNode.textContent = 'Updating…';
+    try {
+        const macros = await getMacroData(newFood);
+        const entries = currentEntries();
+        entries[index] = { food: newFood, macros };
+        setDayEntries(entries);
+        rememberFavorite(newFood, macros);   // keep quick-add in sync
+        render();
+    } catch {
+        statusNode.textContent = 'Could not update. Try again.';
+        statusNode.className = 'status error';
+    }
+}
+
 function clearDay() {
+    if (!currentEntries().length) return;
+    if (!confirm(`Clear all entries for ${selectedDate}? This can't be undone.`)) return;
     setDayEntries([]);
     render();
 }
 
-// ---- favorites (shared meal library) ---------------------------------------
+// ---- favorites / shared meal library ---------------------------------------
 function rememberFavorite(food, macros) {
     const state = loadCache();
     const meals = state.meals || [];
-    if (meals.some((m) => m.name.toLowerCase() === food.toLowerCase())) return; // dedupe
-    meals.unshift({ name: food, macros });
-    state.meals = meals.slice(0, 20); // ponytail: cap the library at 20; add search if it ever grows past that
+    const key = food.toLowerCase();
+    const existing = meals.findIndex((m) => m.name.toLowerCase() === key);
+    if (existing >= 0) meals[existing] = { name: food, macros };  // refresh macros on edit
+    else meals.unshift({ name: food, macros });
+    state.meals = meals.slice(0, 20); // ponytail: cap at 20; add search if it grows past that
     saveCache(state);
     pushItem({ type: 'meals', library: state.meals });
 }
@@ -237,6 +271,70 @@ function saveGoals() {
     render();
 }
 
+// ---- profile tab ------------------------------------------------------------
+function renderProfileTab() {
+    el('profileName').textContent = session.user;
+    el('themeSelect').value = localStorage.getItem('nutri:theme') || 'system';
+
+    // switch-profile buttons (only profiles with a saved key = one tap)
+    const sw = el('switchList');
+    sw.replaceChildren();
+    const ks = keyring();
+    PROFILES.forEach((name) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'profile-btn' + (name === session.user ? ' active' : '');
+        btn.textContent = ks[name] ? name : `${name} 🔑`;
+        btn.disabled = name === session.user;
+        btn.addEventListener('click', () => {
+            if (ks[name]) { attemptLogin(name, ks[name], false); switchTab('today'); }
+            else { el('appSection').hidden = true; el('loginSection').hidden = false; showSecretForm(name); }
+        });
+        sw.appendChild(btn);
+    });
+
+    // per-device saved keys with "forget" (data control)
+    const list = el('keyList');
+    list.replaceChildren();
+    Object.keys(ks).forEach((name) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'row keyrow';
+        const label = document.createElement('span');
+        label.textContent = `${name} — key saved`;
+        const forget = document.createElement('button');
+        forget.type = 'button';
+        forget.className = 'ghost danger';
+        forget.textContent = name === session.user ? 'Sign out' : 'Forget key';
+        forget.addEventListener('click', () => {
+            if (!confirm(`Remove ${name}'s saved key and cached data from THIS device? Server data is untouched; you'll re-enter the key next time.`)) return;
+            forgetKey(name);
+            localStorage.removeItem(`nutri:${name}`);
+            if (name === session.user) {
+                localStorage.removeItem('nutri:active');
+                location.reload();
+            } else { renderProfileTab(); }
+        });
+        rowEl.append(label, forget);
+        list.appendChild(rowEl);
+    });
+}
+
+function exportData() {
+    const blob = new Blob([JSON.stringify(loadCache(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `nutrisage-${session.user}-${dateKey(new Date())}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// ---- theme ------------------------------------------------------------------
+function applyTheme(mode) {
+    // 'system' -> let CSS media query decide; else force via data-theme
+    if (mode === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+}
+
 // ---- rendering (all textContent/createElement — never innerHTML) ------------
 function render() {
     const state = loadCache();
@@ -249,50 +347,96 @@ function render() {
 }
 
 function renderEntries(entries) {
-    const tbody = el('entries');
-    tbody.replaceChildren();
-    entries.forEach((entry, index) => {
-        const m = entry.macros || {};
-        const row = document.createElement('tr');
-        cell(row, entry.food);
-        cell(row, `${num(m.carbs)}g`);
-        cell(row, `${num(m.protein)}g`);
-        cell(row, `${num(m.fat)}g`);
-        cell(row, `${num(m.calories)}`);
-        const rm = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.className = 'remove-btn';
-        btn.textContent = '✕';
-        btn.setAttribute('aria-label', `Remove ${entry.food}`);
-        btn.addEventListener('click', () => removeEntry(index));
-        rm.appendChild(btn);
-        row.appendChild(rm);
-        tbody.appendChild(row);
-    });
+    const list = el('entries');
+    list.replaceChildren();
+    if (!entries.length) {
+        const li = document.createElement('li');
+        li.className = 'muted empty';
+        li.textContent = 'No entries yet. Add a food above.';
+        list.appendChild(li);
+        return;
+    }
+    entries.forEach((entry, index) => list.appendChild(entryRow(entry, index)));
 }
 
+function entryRow(entry, index) {
+    const m = entry.macros || {};
+    const li = document.createElement('li');
+    li.className = 'entry';
+
+    const main = document.createElement('div');
+    main.className = 'entry-main';
+    const name = document.createElement('span');
+    name.className = 'entry-name';
+    name.textContent = entry.food;
+    const macros = document.createElement('span');
+    macros.className = 'entry-macros';
+    macros.textContent = `${num(m.calories)} cal · ${num(m.carbs)}c / ${num(m.protein)}p / ${num(m.fat)}f`;
+    main.append(name, macros);
+
+    const actions = document.createElement('div');
+    actions.className = 'entry-actions';
+    const editBtn = iconBtn('✎', `Edit ${entry.food}`, () => openEditor(li, entry, index));
+    const rmBtn = iconBtn('✕', `Remove ${entry.food}`, () => removeEntry(index));
+    rmBtn.classList.add('danger');
+    actions.append(editBtn, rmBtn);
+
+    li.append(main, actions);
+    return li;
+}
+
+function openEditor(li, entry, index) {
+    li.replaceChildren();
+    li.classList.add('editing');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = entry.food;
+    input.maxLength = 80;
+    const status = document.createElement('span');
+    status.className = 'status';
+    const save = document.createElement('button');
+    save.textContent = 'Save';
+    save.addEventListener('click', () => saveEdit(index, input.value, status));
+    const cancel = document.createElement('button');
+    cancel.className = 'ghost';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', render);
+    const row = document.createElement('div');
+    row.className = 'edit-row';
+    row.append(input, save, cancel);
+    li.append(row, status);
+    input.focus();
+    input.select();
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveEdit(index, input.value, status); if (e.key === 'Escape') render(); });
+}
+
+function iconBtn(glyph, label, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'icon-btn';
+    b.textContent = glyph;
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', onClick);
+    return b;
+}
+
+const MACRO_ROWS = [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Calories', 'calories', '']];
+
 function renderProgress(totals, goals) {
-    const container = el('progressBars');
-    container.replaceChildren();
-    [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Calories', 'calories', '']]
-        .forEach(([label, key, unit]) => {
-            const goal = (goals || {})[key] || 0;
-            container.appendChild(bar(label, totals[key], goal, unit));
-        });
+    const c = el('progressBars');
+    c.replaceChildren();
+    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, totals[key], (goals || {})[key] || 0, unit)));
 }
 
 function renderWeek(days, goals) {
-    const container = el('weekBars');
-    container.replaceChildren();
+    const c = el('weekBars');
+    c.replaceChildren();
+    const keys = weekKeys(selectedDate);
+    el('weekRange').textContent = `${keys[0]} → ${keys[6]}`;
     const wk = sumWeek(days || {}, selectedDate);
-    [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Calories', 'calories', '']]
-        .forEach(([label, key, unit]) => {
-            const weekGoal = ((goals || {})[key] || 0) * 7; // week target = daily goal x7
-            container.appendChild(bar(label, wk[key], weekGoal, unit));
-        });
+    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, wk[key], ((goals || {})[key] || 0) * 7, unit)));
 }
 
-// One labelled progress bar built entirely with DOM nodes.
 function bar(label, value, goal, unit) {
     const wrap = document.createElement('div');
     wrap.className = 'bar';
@@ -316,13 +460,13 @@ function bar(label, value, goal, unit) {
 }
 
 function renderFavorites(meals) {
-    const container = el('favoriteChips');
-    container.replaceChildren();
+    const c = el('favoriteChips');
+    c.replaceChildren();
     if (!meals.length) {
         const p = document.createElement('p');
         p.className = 'muted';
         p.textContent = 'Foods you add show up here for one-tap re-adding.';
-        container.appendChild(p);
+        c.appendChild(p);
         return;
     }
     meals.forEach((meal) => {
@@ -332,7 +476,7 @@ function renderFavorites(meals) {
         chip.textContent = meal.name;
         chip.title = `Add ${meal.name}`;
         chip.addEventListener('click', () => addEntry({ food: meal.name, macros: meal.macros }));
-        container.appendChild(chip);
+        c.appendChild(chip);
     });
 }
 
@@ -345,12 +489,6 @@ function renderGoalInputs(goals) {
 }
 
 // ---- helpers ----------------------------------------------------------------
-function cell(row, text) {
-    const td = document.createElement('td');
-    td.textContent = text;
-    row.appendChild(td);
-}
-
 function setText(id, message, isError) {
     const node = el(id);
     node.textContent = message || '';

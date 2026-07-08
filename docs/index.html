@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NutriSage">
     <link rel="apple-touch-icon" href="images/favicon_io/apple-touch-icon.png">
     <link rel="icon" type="image/x-icon" href="images/favicon_io/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#3e4eb8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#3e4eb8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1a1b26" media="(prefers-color-scheme: dark)">
     <meta name="description" content="Track daily food macros with AI-estimated nutrition.">
     <title>NutriSageAI - Food Macro Tracker</title>
+    <!-- set forced theme before paint so light/dark doesn't flash on load -->
+    <script>var t=localStorage.getItem('nutri:theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);</script>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <header id="banner">
-        <svg id="banner-mark" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false">
+        <svg id="banner-mark" viewBox="0 0 24 24" width="32" height="32" aria-hidden="true" focusable="false">
             <path fill="currentColor" d="M12 2C7 6 4 9 4 14a8 8 0 0 0 16 0c0-5-3-8-8-12Zm0 3.6c3.3 2.9 5 5.2 5 8.4a5 5 0 0 1-5 5V5.6Z"/>
         </svg>
         <div id="banner-text">
@@ -26,75 +29,123 @@
         <button type="button" id="whoami" hidden></button>
     </header>
 
-    <!-- Login: pick a profile, paste secret once -->
-    <section id="loginSection">
+    <!-- Login: pick a profile; only prompts for a key if this device hasn't seen it -->
+    <section id="loginSection" class="card">
         <h2>Who's tracking?</h2>
         <div id="profilePicker"></div>
         <form id="loginForm" hidden>
             <p id="loginName" class="login-name"></p>
             <input type="password" id="secretInput" placeholder="Access key" autocomplete="off" />
-            <button type="submit">Continue</button>
-            <button type="button" id="loginBack">Back</button>
+            <div class="row">
+                <button type="submit">Continue</button>
+                <button type="button" id="loginBack" class="ghost">Back</button>
+            </div>
         </form>
         <p id="loginStatus" class="status" role="status" aria-live="polite"></p>
     </section>
 
-    <!-- App: everything below is shown only after login -->
+    <!-- App -->
     <main id="appSection" hidden>
-        <div id="dateNav">
-            <button type="button" id="prevDay" aria-label="Previous day">‹</button>
-            <input type="date" id="dateInput" />
-            <button type="button" id="nextDay" aria-label="Next day">›</button>
-            <button type="button" id="todayBtn">Today</button>
-        </div>
-
-        <section id="totalsSection">
-            <h2>Daily Progress</h2>
-            <div id="progressBars"></div>
-        </section>
-
-        <section id="weekSection">
-            <h2>This Week</h2>
-            <div id="weekBars"></div>
-        </section>
-
-        <section id="foodEntriesSection">
-            <h2>Food Entries</h2>
-            <form id="foodForm">
-                <input type="text" id="foodInput" placeholder="Enter food item" maxlength="60" autocomplete="off" />
-                <button type="submit" id="addButton">Add</button>
-                <button type="button" id="clearButton">Clear Day</button>
-            </form>
-            <p id="status" class="status" role="status" aria-live="polite"></p>
-
-            <div id="favorites">
-                <h3>Quick add</h3>
-                <div id="favoriteChips"></div>
+        <!-- TODAY -->
+        <section id="tab-today" class="tab-panel">
+            <div id="dateNav">
+                <button type="button" id="prevDay" aria-label="Previous day">‹</button>
+                <input type="date" id="dateInput" />
+                <button type="button" id="nextDay" aria-label="Next day">›</button>
+                <button type="button" id="todayBtn" class="ghost">Today</button>
             </div>
 
-            <div class="table-container">
-                <table id="entriesTable">
-                    <thead>
-                        <tr>
-                            <th>Food Item</th><th>Carbs</th><th>Protein</th><th>Fats</th><th>Calories</th><th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="entries"></tbody>
-                </table>
+            <div class="card">
+                <h2>Daily Progress</h2>
+                <div id="progressBars"></div>
+            </div>
+
+            <div class="card">
+                <h2>Add Food</h2>
+                <form id="foodForm">
+                    <input type="text" id="foodInput" placeholder="e.g. 2 eggs and toast" maxlength="80" autocomplete="off" />
+                    <button type="submit" id="addButton">Add</button>
+                </form>
+                <p id="status" class="status" role="status" aria-live="polite"></p>
+                <div id="favorites">
+                    <h3>Quick add</h3>
+                    <div id="favoriteChips"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head">
+                    <h2>Entries</h2>
+                    <button type="button" id="clearButton" class="ghost danger">Clear day</button>
+                </div>
+                <ul id="entries" class="entry-list"></ul>
             </div>
         </section>
 
-        <section id="goalsSection">
-            <h2>Daily Goals</h2>
-            <form id="goalsForm">
-                <label>Carbs <input type="number" id="goalCarbs" min="0" /></label>
-                <label>Protein <input type="number" id="goalProtein" min="0" /></label>
-                <label>Fat <input type="number" id="goalFat" min="0" /></label>
-                <label>Calories <input type="number" id="goalCalories" min="0" /></label>
-                <button type="submit">Save goals</button>
-            </form>
-            <p id="goalsStatus" class="status" role="status" aria-live="polite"></p>
+        <!-- WEEK -->
+        <section id="tab-week" class="tab-panel" hidden>
+            <div class="card">
+                <h2>This Week</h2>
+                <p class="muted" id="weekRange"></p>
+                <div id="weekBars"></div>
+            </div>
         </section>
+
+        <!-- GOALS -->
+        <section id="tab-goals" class="tab-panel" hidden>
+            <div class="card">
+                <h2>Daily Goals</h2>
+                <p class="muted">Targets drive the progress bars on Today and Week.</p>
+                <form id="goalsForm">
+                    <label>Carbs (g)<input type="number" id="goalCarbs" min="0" inputmode="numeric" /></label>
+                    <label>Protein (g)<input type="number" id="goalProtein" min="0" inputmode="numeric" /></label>
+                    <label>Fat (g)<input type="number" id="goalFat" min="0" inputmode="numeric" /></label>
+                    <label>Calories<input type="number" id="goalCalories" min="0" inputmode="numeric" /></label>
+                    <button type="submit">Save goals</button>
+                </form>
+                <p id="goalsStatus" class="status" role="status" aria-live="polite"></p>
+            </div>
+        </section>
+
+        <!-- PROFILE -->
+        <section id="tab-profile" class="tab-panel" hidden>
+            <div class="card">
+                <h2>Profile</h2>
+                <p class="muted">Signed in as <strong id="profileName"></strong></p>
+                <h3>Switch profile</h3>
+                <div id="switchList" class="row wrap"></div>
+            </div>
+            <div class="card">
+                <h2>Appearance</h2>
+                <div class="row">
+                    <label class="seg">Theme
+                        <select id="themeSelect">
+                            <option value="system">System</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Data</h2>
+                <div class="row wrap">
+                    <button type="button" id="exportBtn" class="ghost">Export my data (JSON)</button>
+                    <button type="button" id="refreshBtn" class="ghost">Re-sync from server</button>
+                </div>
+                <h3>This device</h3>
+                <p class="muted">Saved keys let you switch profiles without re-entering them.</p>
+                <div id="keyList"></div>
+            </div>
+        </section>
+
+        <!-- Tab bar -->
+        <nav id="tabBar">
+            <button type="button" class="tab-btn active" data-tab="today"><span>Today</span></button>
+            <button type="button" class="tab-btn" data-tab="week"><span>Week</span></button>
+            <button type="button" class="tab-btn" data-tab="goals"><span>Goals</span></button>
+            <button type="button" class="tab-btn" data-tab="profile"><span>Profile</span></button>
+        </nav>
     </main>
 
     <script src="macros.js"></script>

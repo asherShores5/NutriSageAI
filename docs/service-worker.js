@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nutrisageai-cache-v4';
+const CACHE_NAME = 'nutrisageai-cache-v5';
 
 // Paths relative to the service worker scope (docs/), so they don't break if the
 // GitHub Pages project path changes.
