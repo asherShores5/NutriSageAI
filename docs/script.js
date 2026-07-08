@@ -425,7 +425,7 @@ const MACRO_ROWS = [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat'
 function renderProgress(totals, goals) {
     const c = el('progressBars');
     c.replaceChildren();
-    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, totals[key], (goals || {})[key] || 0, unit)));
+    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, totals[key], (goals || {})[key] || 0, unit, key)));
 }
 
 function renderWeek(days, goals) {
@@ -434,10 +434,10 @@ function renderWeek(days, goals) {
     const keys = weekKeys(selectedDate);
     el('weekRange').textContent = `${keys[0]} → ${keys[6]}`;
     const wk = sumWeek(days || {}, selectedDate);
-    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, wk[key], ((goals || {})[key] || 0) * 7, unit)));
+    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, wk[key], ((goals || {})[key] || 0) * 7, unit, key)));
 }
 
-function bar(label, value, goal, unit) {
+function bar(label, value, goal, unit, key) {
     const wrap = document.createElement('div');
     wrap.className = 'bar';
     const head = document.createElement('div');
@@ -453,7 +453,8 @@ function bar(label, value, goal, unit) {
     const fill = document.createElement('div');
     fill.className = 'bar-fill';
     fill.style.width = pct(value, goal) + '%';
-    if (goal > 0 && num(value) > goal) fill.classList.add('over');
+    // protein over goal is good (green); every other macro over goal is bad (red)
+    if (goal > 0 && num(value) > goal) fill.classList.add(key === 'protein' ? 'good' : 'over');
     track.appendChild(fill);
     wrap.append(head, track);
     return wrap;

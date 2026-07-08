@@ -164,6 +164,7 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
     min-width: 2px;
 }
 .bar-fill.over { background: linear-gradient(90deg, var(--danger), #e0745a); }
+.bar-fill.good { background: linear-gradient(90deg, #2e9e5b, #46c072); }
 
 /* ---- favorites chips ---- */
 #favorites { margin-top: 16px; }
