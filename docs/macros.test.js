@@ -11,14 +11,14 @@ assert.strictEqual(num(3.5), 3.5);
 // sumMacros() tolerates missing / non-numeric fields
 assert.deepStrictEqual(
     sumMacros([
-        { food: 'a', macros: { carbs: 10, protein: 5, fat: 2, calories: 100 } },
-        { food: 'b', macros: { carbs: '20', protein: null, calories: 'x' } },
+        { food: 'a', macros: { carbs: 10, protein: 5, fat: 2, fiber: 3, sodium: 200, calories: 100 } },
+        { food: 'b', macros: { carbs: '20', protein: null, sodium: '50', calories: 'x' } },
         { food: 'c' }
     ]),
-    { carbs: 30, protein: 5, fat: 2, calories: 100 }
+    { carbs: 30, protein: 5, fat: 2, fiber: 3, sodium: 250, calories: 100 }
 );
-assert.deepStrictEqual(sumMacros([]), { carbs: 0, protein: 0, fat: 0, calories: 0 });
-assert.deepStrictEqual(sumMacros(null), { carbs: 0, protein: 0, fat: 0, calories: 0 });
+assert.deepStrictEqual(sumMacros([]), { carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0, calories: 0 });
+assert.deepStrictEqual(sumMacros(null), { carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0, calories: 0 });
 
 // dateKey() -> zero-padded local YYYY-MM-DD
 assert.strictEqual(dateKey(new Date(2026, 0, 5)), '2026-01-05'); // Jan 5

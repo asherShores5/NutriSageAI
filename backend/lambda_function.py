@@ -40,7 +40,8 @@ PROMPT = (
     "do not shrink them. Treat 'one whole X' as the entire item. Account for cooking oils, cheese, "
     "sauces, and prep that add fat and calories. When unsure between portion sizes, choose the "
     "larger realistic one. Reply with ONLY a JSON object, no prose, numeric keys carbs, protein, "
-    "fat (grams) and calories (kcal). If truly unrecognizable, use 0 for all. Food: "
+    "fat, fiber (grams), sodium (milligrams) and calories (kcal). If truly unrecognizable, use 0 "
+    "for all. Food: "
 )
 
 
@@ -57,7 +58,7 @@ def _macros(food_item):
     # model usually returns bare JSON but may wrap it in prose/```json fences
     match = re.search(r"\{.*\}", text, re.DOTALL)
     data = json.loads(match.group(0) if match else text)
-    return {k: round(float(data.get(k, 0)), 1) for k in ("carbs", "protein", "fat", "calories")}
+    return {k: round(float(data.get(k, 0)), 1) for k in ("carbs", "protein", "fat", "fiber", "sodium", "calories")}
 
 
 # ---- auth + data sync -------------------------------------------------------

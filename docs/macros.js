@@ -4,15 +4,14 @@ function num(v) {
     return Number(v) || 0;
 }
 
+const MACRO_KEYS = ['carbs', 'protein', 'fat', 'fiber', 'sodium', 'calories'];
+
 function sumMacros(entries) {
     return (entries || []).reduce((acc, entry) => {
         const m = (entry && entry.macros) || {};
-        acc.carbs += num(m.carbs);
-        acc.protein += num(m.protein);
-        acc.fat += num(m.fat);
-        acc.calories += num(m.calories);
+        MACRO_KEYS.forEach((k) => { acc[k] += num(m[k]); });
         return acc;
-    }, { carbs: 0, protein: 0, fat: 0, calories: 0 });
+    }, Object.fromEntries(MACRO_KEYS.map((k) => [k, 0])));
 }
 
 // YYYY-MM-DD for a Date (local time, not UTC — the day boundary should match the user's).
@@ -38,9 +37,9 @@ function weekKeys(endKey) {
 function sumWeek(days, endKey) {
     return weekKeys(endKey).reduce((acc, k) => {
         const t = sumMacros((days[k] || {}).entries);
-        acc.carbs += t.carbs; acc.protein += t.protein; acc.fat += t.fat; acc.calories += t.calories;
+        MACRO_KEYS.forEach((key) => { acc[key] += t[key]; });
         return acc;
-    }, { carbs: 0, protein: 0, fat: 0, calories: 0 });
+    }, Object.fromEntries(MACRO_KEYS.map((k) => [k, 0])));
 }
 
 // Percent of goal, clamped 0..100 for a progress bar. goal<=0 -> 0 (no goal set).
@@ -50,5 +49,5 @@ function pct(value, goal) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { num, sumMacros, dateKey, weekKeys, sumWeek, pct };
+    module.exports = { num, sumMacros, dateKey, weekKeys, sumWeek, pct, MACRO_KEYS };
 }

@@ -262,6 +262,8 @@ function saveGoals() {
         carbs: num(el('goalCarbs').value),
         protein: num(el('goalProtein').value),
         fat: num(el('goalFat').value),
+        fiber: num(el('goalFiber').value),
+        sodium: num(el('goalSodium').value),
         calories: num(el('goalCalories').value),
     };
     const state = loadCache();
@@ -389,7 +391,7 @@ function entryRow(entry, index) {
     name.textContent = entry.food;
     const macros = document.createElement('span');
     macros.className = 'entry-macros';
-    macros.textContent = `${num(m.calories)} cal · ${num(m.carbs)}c / ${num(m.protein)}p / ${num(m.fat)}f`;
+    macros.textContent = `${num(m.calories)} cal · ${num(m.carbs)}c / ${num(m.protein)}p / ${num(m.fat)}f · ${num(m.fiber)}g fiber · ${num(m.sodium)}mg Na`;
     main.append(name, macros);
 
     const actions = document.createElement('div');
@@ -438,7 +440,7 @@ function iconBtn(glyph, label, onClick) {
     return b;
 }
 
-const MACRO_ROWS = [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Calories', 'calories', '']];
+const MACRO_ROWS = [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Fiber', 'fiber', 'g'], ['Sodium', 'sodium', 'mg'], ['Calories', 'calories', '']];
 
 function renderProgress(totals, goals) {
     const c = el('progressBars');
@@ -455,12 +457,13 @@ function renderWeek(days, goals) {
     MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, wk[key], ((goals || {})[key] || 0) * 7, unit, key)));
 }
 
-// Bar color intent (green = on target). Protein: green once at/over goal (more is fine).
+// Bar color intent (green = on target). Protein/fiber: green once at/over goal (more is fine).
 // Others: green within ±10% of goal, red when >10% over. Under-target stays neutral.
+const MORE_IS_GOOD = new Set(['protein', 'fiber']);
 function barState(key, value, goal) {
     if (goal <= 0) return '';
     const v = num(value);
-    if (key === 'protein') return v >= goal * 0.9 ? 'good' : '';
+    if (MORE_IS_GOOD.has(key)) return v >= goal * 0.9 ? 'good' : '';
     if (v >= goal * 0.9 && v <= goal * 1.1) return 'good';
     if (v > goal * 1.1) return 'over';
     return '';
@@ -515,6 +518,8 @@ function renderGoalInputs(goals) {
     el('goalCarbs').value = goals.carbs || '';
     el('goalProtein').value = goals.protein || '';
     el('goalFat').value = goals.fat || '';
+    el('goalFiber').value = goals.fiber || '';
+    el('goalSodium').value = goals.sodium || '';
     el('goalCalories').value = goals.calories || '';
 }
 
