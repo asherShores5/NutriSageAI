@@ -437,6 +437,17 @@ function renderWeek(days, goals) {
     MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, wk[key], ((goals || {})[key] || 0) * 7, unit, key)));
 }
 
+// Bar color intent (green = on target). Protein: green once at/over goal (more is fine).
+// Others: green within ±10% of goal, red when >10% over. Under-target stays neutral.
+function barState(key, value, goal) {
+    if (goal <= 0) return '';
+    const v = num(value);
+    if (key === 'protein') return v >= goal * 0.9 ? 'good' : '';
+    if (v >= goal * 0.9 && v <= goal * 1.1) return 'good';
+    if (v > goal * 1.1) return 'over';
+    return '';
+}
+
 function bar(label, value, goal, unit, key) {
     const wrap = document.createElement('div');
     wrap.className = 'bar';
@@ -453,8 +464,8 @@ function bar(label, value, goal, unit, key) {
     const fill = document.createElement('div');
     fill.className = 'bar-fill';
     fill.style.width = pct(value, goal) + '%';
-    // protein over goal is good (green); every other macro over goal is bad (red)
-    if (goal > 0 && num(value) > goal) fill.classList.add(key === 'protein' ? 'good' : 'over');
+    const state = barState(key, value, goal); // 'good' | 'over' | ''
+    if (state) fill.classList.add(state);
     track.appendChild(fill);
     wrap.append(head, track);
     return wrap;
