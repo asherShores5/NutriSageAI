@@ -144,6 +144,10 @@ function wireAppEvents() {
     el('themeSelect').addEventListener('change', (e) => { applyTheme(e.target.value); localStorage.setItem('nutri:theme', e.target.value); });
     el('exportBtn').addEventListener('click', exportData);
     el('refreshBtn').addEventListener('click', async () => { setText('goalsStatus', ''); await pull(); render(); });
+    el('waterPlus').addEventListener('click', () => setWater(currentWater() + 1));
+    el('waterMinus').addEventListener('click', () => setWater(currentWater() - 1));
+    el('waterGoal').addEventListener('change', () => { setGoal('waterGoal', num(el('waterGoal').value)); render(); });
+    el('trendMetric').addEventListener('change', renderTrends);
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 }
 
@@ -152,6 +156,7 @@ function switchTab(name) {
     document.querySelectorAll('.tab-panel').forEach((p) => { p.hidden = p.id !== `tab-${name}`; });
     document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     if (name === 'profile') renderProfileTab();
+    if (name === 'trends') renderTrends();
     window.scrollTo(0, 0);
 }
 
@@ -165,15 +170,21 @@ function shiftDay(delta) {
 }
 
 // ---- day data ---------------------------------------------------------------
-function currentEntries() {
-    return (loadCache().days[selectedDate] || {}).entries || [];
-}
-function setDayEntries(entries) {
+// A day is { entries:[...], water:<cups>, updatedAt }. Entries and water are edited
+// independently, so each writer preserves the other field on the day.
+function currentDay() { return loadCache().days[selectedDate] || {}; }
+function currentEntries() { return currentDay().entries || []; }
+function currentWater() { return num(currentDay().water); }
+
+function writeDay(patch) {
     const state = loadCache();
-    state.days[selectedDate] = { entries, updatedAt: new Date().toISOString() };
+    const day = { entries: [], ...(state.days[selectedDate] || {}), ...patch, updatedAt: new Date().toISOString() };
+    state.days[selectedDate] = day;
     saveCache(state);
-    pushItem({ type: 'day', date: selectedDate, entries, updatedAt: state.days[selectedDate].updatedAt });
+    pushItem({ type: 'day', date: selectedDate, entries: day.entries, water: day.water, updatedAt: day.updatedAt });
 }
+function setDayEntries(entries) { writeDay({ entries }); }
+function setWater(cups) { writeDay({ water: Math.max(0, cups) }); render(); }
 
 // ---- food entry -------------------------------------------------------------
 async function addFood() {
@@ -182,11 +193,13 @@ async function addFood() {
     el('addButton').disabled = true;
     setText('status', 'Fetching macros…');
     try {
-        const macros = await getMacroData(foodItem);
-        addEntry({ food: foodItem, macros, meal: el('mealSelect').value });
+        const base = await getMacroData(foodItem);       // per-portion macros as described
+        const factor = portionFactor();
+        addEntry({ food: portionLabel(foodItem, factor), macros: scaleMacros(base, factor), meal: el('mealSelect').value });
         el('foodInput').value = '';
+        el('portionInput').value = 1;                     // reset to default 1 after each add
         setText('status', '');
-        rememberFavorite(foodItem, macros);
+        rememberFavorite(foodItem, base);                 // library stores the 1× base
     } catch (error) {
         console.error('Error fetching macro data:', error);
         setText('status', 'Could not fetch macros. Check your connection and try again.', true);
@@ -203,6 +216,15 @@ async function getMacroData(foodItem) {
     });
     if (!resp.ok) throw new Error(`API request failed: ${resp.status}`);
     return resp.json();
+}
+
+// Portion multiplier (defaults to 1 = "as described"). Clamped to a sane range.
+function portionFactor() {
+    const f = num(el('portionInput').value);
+    return f > 0 ? Math.min(f, 20) : 1;
+}
+function portionLabel(food, factor) {
+    return factor === 1 ? food : `${food} (×${factor})`;
 }
 
 function addEntry(entry) {
@@ -258,7 +280,9 @@ function rememberFavorite(food, macros) {
 
 // ---- goals ------------------------------------------------------------------
 function saveGoals() {
+    const state = loadCache();
     const goals = {
+        ...state.goals,                          // keep non-form goals (e.g. waterGoal)
         carbs: num(el('goalCarbs').value),
         protein: num(el('goalProtein').value),
         fat: num(el('goalFat').value),
@@ -266,12 +290,19 @@ function saveGoals() {
         sodium: num(el('goalSodium').value),
         calories: num(el('goalCalories').value),
     };
-    const state = loadCache();
     state.goals = goals;
     saveCache(state);
     pushItem({ type: 'goals', goals });
     setText('goalsStatus', 'Goals saved.');
     render();
+}
+
+// Set a single goal key (used by the water goal control) and sync.
+function setGoal(key, value) {
+    const state = loadCache();
+    state.goals = { ...state.goals, [key]: value };
+    saveCache(state);
+    pushItem({ type: 'goals', goals: state.goals });
 }
 
 // ---- profile tab ------------------------------------------------------------
@@ -344,9 +375,11 @@ function render() {
     const entries = (state.days[selectedDate] || {}).entries || [];
     renderEntries(entries);
     renderProgress(sumMacros(entries), state.goals);
+    renderWater(state.goals);
     renderWeek(state.days, state.goals);
     renderFavorites(state.meals || []);
     renderGoalInputs(state.goals);
+    if (!el('tab-trends').hidden) renderTrends();
 }
 
 function renderEntries(entries) {
@@ -449,12 +482,104 @@ function renderProgress(totals, goals) {
 }
 
 function renderWeek(days, goals) {
-    const c = el('weekBars');
-    c.replaceChildren();
+    days = days || {};
+    goals = goals || {};
     const keys = weekKeys(selectedDate);
+
+    // streak
+    const n = streak(days, selectedDate);
+    el('streakBig').textContent = n ? `🔥 ${n}` : '—';
+    el('streakSub').textContent = n
+        ? `day${n === 1 ? '' : 's'} logged in a row. Keep it going!`
+        : 'No active streak — log a day to start one.';
+
+    // daily average over logged days
+    const stats = weekStats(days, selectedDate);
+    el('avgSub').textContent = stats.logged
+        ? `Averaged over ${stats.logged} logged day${stats.logged === 1 ? '' : 's'} this week.`
+        : 'No days logged this week yet.';
+    const avgC = el('weekAvgBars');
+    avgC.replaceChildren();
+    MACRO_ROWS.forEach(([label, key, unit]) => avgC.appendChild(bar(label, stats.avg[key], goals[key] || 0, unit, key)));
+
+    // week total
     el('weekRange').textContent = `${keys[0]} → ${keys[6]}`;
-    const wk = sumWeek(days || {}, selectedDate);
-    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, wk[key], ((goals || {})[key] || 0) * 7, unit, key)));
+    const wk = sumWeek(days, selectedDate);
+    const totalC = el('weekBars');
+    totalC.replaceChildren();
+    MACRO_ROWS.forEach(([label, key, unit]) => totalC.appendChild(bar(label, wk[key], (goals[key] || 0) * 7, unit, key)));
+}
+
+// ---- water ------------------------------------------------------------------
+function renderWater(goals) {
+    const cups = currentWater();
+    const goal = num((goals || {}).waterGoal) || 8;
+    el('waterGoal').value = goal;
+    el('waterCount').textContent = `${cups} / ${goal} cups`;
+    const wrap = el('waterCups');
+    wrap.replaceChildren();
+    const shown = Math.max(goal, cups);          // show overflow cups too
+    for (let i = 0; i < shown; i++) {
+        const cup = document.createElement('button');
+        cup.type = 'button';
+        cup.className = 'cup' + (i < cups ? ' filled' : '') + (i >= goal ? ' extra' : '');
+        cup.textContent = i < cups ? '💧' : '○';
+        cup.setAttribute('aria-label', `Set water to ${i + 1} cups`);
+        cup.addEventListener('click', () => setWater(i + 1 === cups ? i : i + 1)); // tap filled top cup to undo
+        wrap.appendChild(cup);
+    }
+}
+
+// ---- trends (30-day canvas line chart, no libs) -----------------------------
+function renderTrends() {
+    const days = loadCache().days || {};
+    const metric = el('trendMetric').value;
+    const keys = lastDays(selectedDate, 30);
+    const vals = keys.map((k) => Math.round(sumMacros((days[k] || {}).entries)[metric]));
+    const logged = vals.filter((v) => v > 0).length;
+    el('trendSub').textContent = logged
+        ? `Last 30 days · ${logged} logged · max ${Math.max(...vals)}`
+        : 'No data in the last 30 days.';
+    drawChart(el('trendChart'), keys, vals);
+}
+
+function drawChart(canvas, keys, vals) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height, pad = 28;
+    ctx.clearRect(0, 0, W, H);
+    const css = getComputedStyle(document.documentElement);
+    const brand = css.getPropertyValue('--brand').trim() || '#3e4eb8';
+    const muted = css.getPropertyValue('--muted').trim() || '#888';
+    const border = css.getPropertyValue('--border').trim() || '#ddd';
+    const max = Math.max(1, ...vals);
+    const x = (i) => pad + (i * (W - 2 * pad)) / (keys.length - 1);
+    const y = (v) => H - pad - (v / max) * (H - 2 * pad);
+
+    // baseline
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
+
+    // max label
+    ctx.fillStyle = muted;
+    ctx.font = '12px sans-serif';
+    ctx.fillText(String(max), 2, pad);
+
+    // line
+    ctx.strokeStyle = brand;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    vals.forEach((v, i) => { i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)); });
+    ctx.stroke();
+
+    // dots on logged days
+    ctx.fillStyle = brand;
+    vals.forEach((v, i) => { if (v > 0) { ctx.beginPath(); ctx.arc(x(i), y(v), 2.5, 0, 7); ctx.fill(); } });
+
+    // first/last date labels
+    ctx.fillStyle = muted;
+    ctx.fillText(keys[0].slice(5), pad, H - 8);
+    ctx.fillText(keys[keys.length - 1].slice(5), W - pad - 28, H - 8);
 }
 
 // Bar color intent (green = on target). Protein/fiber: green once at/over goal (more is fine).
@@ -508,7 +633,10 @@ function renderFavorites(meals) {
         chip.className = 'chip';
         chip.textContent = meal.name;
         chip.title = `Add ${meal.name}`;
-        chip.addEventListener('click', () => addEntry({ food: meal.name, macros: meal.macros, meal: el('mealSelect').value }));
+        chip.addEventListener('click', () => {
+            const factor = portionFactor();
+            addEntry({ food: portionLabel(meal.name, factor), macros: scaleMacros(meal.macros, factor), meal: el('mealSelect').value });
+        });
         c.appendChild(chip);
     });
 }

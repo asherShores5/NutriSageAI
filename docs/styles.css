@@ -143,10 +143,17 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 #todayBtn { flex: 0 0 auto; }
 
 /* ---- add-food form ---- */
-#foodForm { display: flex; flex-wrap: wrap; gap: 8px; }
+#foodForm { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 #foodForm select { flex: 1 1 100%; }
-#foodForm input { flex: 1; min-width: 0; }
+#foodForm > #foodInput { flex: 1; min-width: 0; }
 #foodForm button { flex: 0 0 auto; padding-left: 20px; padding-right: 20px; }
+#portionField {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+    padding: 0 8px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--card); color: var(--muted); font-weight: 600;
+}
+#portionField input { width: 52px; border: none; padding: 10px 2px; text-align: center; }
+#portionField input:focus { outline: none; }
 @media (min-width: 440px) { #foodForm select { flex: 0 0 auto; width: auto; } }
 
 /* ---- status ---- */
@@ -253,6 +260,30 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 }
 .tab-btn:hover { filter: none; background: var(--brand-soft); }
 .tab-btn.active { color: var(--brand); border-top-color: var(--brand); background: transparent; }
+@media (max-width: 380px) { .tab-btn { font-size: 0.72rem; padding: 12px 2px; } }
+
+/* ---- water ---- */
+#waterCups { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cup {
+    width: 34px; height: 34px; padding: 0;
+    background: var(--track); color: var(--muted);
+    border: none; border-radius: 8px; font-size: 1rem; line-height: 1;
+}
+.cup.filled { background: var(--brand-soft); }
+.cup.extra { outline: 1px dashed var(--brand); }
+.cup:hover { filter: none; background: var(--brand-soft); }
+#waterControls { flex-wrap: wrap; }
+#waterMinus, #waterPlus { flex: 0 0 auto; }
+#waterGoal { width: 64px; }
+
+/* ---- streak ---- */
+#streakCard { text-align: center; }
+#streakBig { font-size: 2.2rem; font-weight: 800; color: var(--brand); }
+#streakSub { margin: 4px 0 0; }
+
+/* ---- trends chart ---- */
+#trendChart { width: 100%; height: auto; margin-top: 8px; }
+#trendMetric { width: auto; }
 
 /* ---- wider screens ---- */
 @media (min-width: 560px) {

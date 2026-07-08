@@ -70,6 +70,7 @@
                         <option value="snack">Snack</option>
                     </select>
                     <input type="text" id="foodInput" placeholder="e.g. 2 eggs and toast" maxlength="80" autocomplete="off" />
+                    <label id="portionField" title="Portion multiplier (1 = as described)">×<input type="number" id="portionInput" value="1" min="0.25" step="0.25" inputmode="decimal" aria-label="Portion multiplier" /></label>
                     <button type="submit" id="addButton">Add</button>
                 </form>
                 <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -86,14 +87,56 @@
                 </div>
                 <ul id="entries" class="entry-list"></ul>
             </div>
+
+            <div class="card" id="waterCard">
+                <div class="card-head">
+                    <h2>Water</h2>
+                    <span id="waterCount" class="muted"></span>
+                </div>
+                <div id="waterCups"></div>
+                <div class="row" id="waterControls">
+                    <button type="button" id="waterMinus" class="ghost" aria-label="Remove a cup">−</button>
+                    <button type="button" id="waterPlus">+ Cup</button>
+                    <label class="seg">Goal <input type="number" id="waterGoal" min="0" max="30" step="1" inputmode="numeric" value="8" aria-label="Daily cup goal" /></label>
+                </div>
+                <p class="muted">Optional — track cups of water per day.</p>
+            </div>
         </section>
 
         <!-- WEEK -->
         <section id="tab-week" class="tab-panel" hidden>
+            <div class="card" id="streakCard">
+                <div id="streakBig"></div>
+                <p class="muted" id="streakSub"></p>
+            </div>
             <div class="card">
-                <h2>This Week</h2>
+                <h2>Daily Average</h2>
+                <p class="muted" id="avgSub"></p>
+                <div id="weekAvgBars"></div>
+            </div>
+            <div class="card">
+                <h2>Week Total</h2>
                 <p class="muted" id="weekRange"></p>
                 <div id="weekBars"></div>
+            </div>
+        </section>
+
+        <!-- TRENDS -->
+        <section id="tab-trends" class="tab-panel" hidden>
+            <div class="card">
+                <div class="card-head">
+                    <h2>Trends</h2>
+                    <select id="trendMetric" aria-label="Metric">
+                        <option value="calories">Calories</option>
+                        <option value="carbs">Carbs</option>
+                        <option value="protein">Protein</option>
+                        <option value="fat">Fat</option>
+                        <option value="fiber">Fiber</option>
+                        <option value="sodium">Sodium</option>
+                    </select>
+                </div>
+                <p class="muted" id="trendSub"></p>
+                <canvas id="trendChart" width="600" height="240" role="img" aria-label="Daily trend chart"></canvas>
             </div>
         </section>
 
@@ -151,6 +194,7 @@
         <nav id="tabBar">
             <button type="button" class="tab-btn active" data-tab="today"><span>Today</span></button>
             <button type="button" class="tab-btn" data-tab="week"><span>Week</span></button>
+            <button type="button" class="tab-btn" data-tab="trends"><span>Trends</span></button>
             <button type="button" class="tab-btn" data-tab="goals"><span>Goals</span></button>
             <button type="button" class="tab-btn" data-tab="profile"><span>Profile</span></button>
         </nav>

@@ -109,7 +109,11 @@ def _push(user, item):
         date = item.get("date", "")
         if not DATE_RE.match(date):
             raise ValueError("bad date")
-        _put_row(user, date, {"entries": item.get("entries", []), "updatedAt": item.get("updatedAt")})
+        _put_row(user, date, {
+            "entries": item.get("entries", []),
+            "water": item.get("water", 0),
+            "updatedAt": item.get("updatedAt"),
+        })
     elif kind == "goals":
         _put_row(user, "goals", item.get("goals", {}))
     elif kind == "meals":  # shared library — any authed user may update
