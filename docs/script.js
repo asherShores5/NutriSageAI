@@ -1,5 +1,6 @@
 const API_URL = 'https://q8f8dfzb0j.execute-api.us-east-1.amazonaws.com';
 const PROFILES = ['asher', 'aubyn']; // add a family member here + a hash in the Lambda's USER_SECRETS
+const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']; // entry.meal buckets; order = display order
 
 const el = (id) => document.getElementById(id);
 
@@ -182,7 +183,7 @@ async function addFood() {
     setText('status', 'Fetching macros…');
     try {
         const macros = await getMacroData(foodItem);
-        addEntry({ food: foodItem, macros });
+        addEntry({ food: foodItem, macros, meal: el('mealSelect').value });
         el('foodInput').value = '';
         setText('status', '');
         rememberFavorite(foodItem, macros);
@@ -225,7 +226,7 @@ async function saveEdit(index, newFood, statusNode) {
     try {
         const macros = await getMacroData(newFood);
         const entries = currentEntries();
-        entries[index] = { food: newFood, macros };
+        entries[index] = { food: newFood, macros, meal: entries[index].meal }; // keep the meal bucket
         setDayEntries(entries);
         rememberFavorite(newFood, macros);   // keep quick-add in sync
         render();
@@ -356,7 +357,24 @@ function renderEntries(entries) {
         list.appendChild(li);
         return;
     }
-    entries.forEach((entry, index) => list.appendChild(entryRow(entry, index)));
+    // Group by meal, preserving each entry's original index (edit/remove need it).
+    // Legacy entries with no `meal` fall into snack.
+    MEALS.forEach((meal) => {
+        const rows = entries
+            .map((entry, index) => ({ entry, index }))
+            .filter(({ entry }) => (entry.meal || 'snack') === meal);
+        if (!rows.length) return;
+        const header = document.createElement('li');
+        header.className = 'meal-header';
+        const title = document.createElement('span');
+        title.textContent = meal[0].toUpperCase() + meal.slice(1);
+        const cals = document.createElement('span');
+        cals.className = 'meal-cals';
+        cals.textContent = `${Math.round(sumMacros(rows.map((r) => r.entry)).calories)} cal`;
+        header.append(title, cals);
+        list.appendChild(header);
+        rows.forEach(({ entry, index }) => list.appendChild(entryRow(entry, index)));
+    });
 }
 
 function entryRow(entry, index) {
@@ -487,7 +505,7 @@ function renderFavorites(meals) {
         chip.className = 'chip';
         chip.textContent = meal.name;
         chip.title = `Add ${meal.name}`;
-        chip.addEventListener('click', () => addEntry({ food: meal.name, macros: meal.macros }));
+        chip.addEventListener('click', () => addEntry({ food: meal.name, macros: meal.macros, meal: el('mealSelect').value }));
         c.appendChild(chip);
     });
 }

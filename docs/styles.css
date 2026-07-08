@@ -143,9 +143,11 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 #todayBtn { flex: 0 0 auto; }
 
 /* ---- add-food form ---- */
-#foodForm { display: flex; gap: 8px; }
-#foodForm input { flex: 1; }
+#foodForm { display: flex; flex-wrap: wrap; gap: 8px; }
+#foodForm select { flex: 1 1 100%; }
+#foodForm input { flex: 1; min-width: 0; }
 #foodForm button { flex: 0 0 auto; padding-left: 20px; padding-right: 20px; }
+@media (min-width: 440px) { #foodForm select { flex: 0 0 auto; width: auto; } }
 
 /* ---- status ---- */
 .status { min-height: 1.1em; margin: 8px 0 0; color: var(--muted); font-size: 0.85rem; }
@@ -192,6 +194,13 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
     border-bottom: 1px solid var(--border);
 }
 .entry:last-child { border-bottom: none; }
+.meal-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 14px 0 4px; font-size: 0.8rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--brand);
+}
+.meal-header:first-child { padding-top: 0; }
+.meal-cals { color: var(--muted); font-weight: 600; letter-spacing: 0; }
 .entry.empty, .entry-list .empty { justify-content: center; padding: 20px 0; border: none; }
 .entry-main { flex: 1; min-width: 0; }
 .entry-name { display: block; font-weight: 600; overflow-wrap: anywhere; }

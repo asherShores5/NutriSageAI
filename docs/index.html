@@ -63,6 +63,12 @@
             <div class="card">
                 <h2>Add Food</h2>
                 <form id="foodForm">
+                    <select id="mealSelect" aria-label="Meal category">
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="snack">Snack</option>
+                    </select>
                     <input type="text" id="foodInput" placeholder="e.g. 2 eggs and toast" maxlength="80" autocomplete="off" />
                     <button type="submit" id="addButton">Add</button>
                 </form>
