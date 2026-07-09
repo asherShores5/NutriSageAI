@@ -1,5 +1,5 @@
 const API_URL = 'https://q8f8dfzb0j.execute-api.us-east-1.amazonaws.com';
-const PROFILES = ['asher', 'aubyn']; // add a family member here + a hash in the Lambda's USER_SECRETS
+const PROFILES = ['asher', 'aubyn', 'tommy']; // add a family member here + a hash in the Lambda's USER_SECRETS
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']; // entry.meal buckets; order = display order
 
 const el = (id) => document.getElementById(id);
@@ -288,6 +288,7 @@ function saveGoals() {
         fat: num(el('goalFat').value),
         fiber: num(el('goalFiber').value),
         sodium: num(el('goalSodium').value),
+        iron: num(el('goalIron').value),
         calories: num(el('goalCalories').value),
     };
     state.goals = goals;
@@ -424,8 +425,11 @@ function entryRow(entry, index) {
     name.textContent = entry.food;
     const macros = document.createElement('span');
     macros.className = 'entry-macros';
-    macros.textContent = `${num(m.calories)} cal · ${num(m.carbs)}c / ${num(m.protein)}p / ${num(m.fat)}f · ${num(m.fiber)}g fiber · ${num(m.sodium)}mg Na`;
-    main.append(name, macros);
+    macros.textContent = `${num(m.calories)} cal · ${num(m.carbs)}c / ${num(m.protein)}p / ${num(m.fat)}f · ${num(m.fiber)}g fiber`;
+    const micros = document.createElement('span');
+    micros.className = 'entry-micros';
+    micros.textContent = `Na ${num(m.sodium)}mg · Fe ${num(m.iron)}mg`;
+    main.append(name, macros, micros);
 
     const actions = document.createElement('div');
     actions.className = 'entry-actions';
@@ -473,12 +477,24 @@ function iconBtn(glyph, label, onClick) {
     return b;
 }
 
-const MACRO_ROWS = [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Fiber', 'fiber', 'g'], ['Sodium', 'sodium', 'mg'], ['Calories', 'calories', '']];
+// Macronutrients (grams + energy) and micronutrients (mg) shown as separate groups.
+const MACRO_ROWS = [['Carbs', 'carbs', 'g'], ['Protein', 'protein', 'g'], ['Fat', 'fat', 'g'], ['Fiber', 'fiber', 'g'], ['Calories', 'calories', '']];
+const MICRO_ROWS = [['Sodium', 'sodium', 'mg'], ['Iron', 'iron', 'mg']];
+
+// Render the macro bars, a "Micronutrients" divider, then the micro bars.
+// valueFor/goalFor map a macro key -> number, so this is reused for daily/avg/total.
+function renderBarGroups(container, valueFor, goalFor) {
+    container.replaceChildren();
+    MACRO_ROWS.forEach(([label, key, unit]) => container.appendChild(bar(label, valueFor(key), goalFor(key), unit, key)));
+    const divider = document.createElement('div');
+    divider.className = 'bar-group-label';
+    divider.textContent = 'Micronutrients';
+    container.appendChild(divider);
+    MICRO_ROWS.forEach(([label, key, unit]) => container.appendChild(bar(label, valueFor(key), goalFor(key), unit, key)));
+}
 
 function renderProgress(totals, goals) {
-    const c = el('progressBars');
-    c.replaceChildren();
-    MACRO_ROWS.forEach(([label, key, unit]) => c.appendChild(bar(label, totals[key], (goals || {})[key] || 0, unit, key)));
+    renderBarGroups(el('progressBars'), (k) => totals[k], (k) => (goals || {})[k] || 0);
 }
 
 function renderWeek(days, goals) {
@@ -498,16 +514,12 @@ function renderWeek(days, goals) {
     el('avgSub').textContent = stats.logged
         ? `Averaged over ${stats.logged} logged day${stats.logged === 1 ? '' : 's'} this week.`
         : 'No days logged this week yet.';
-    const avgC = el('weekAvgBars');
-    avgC.replaceChildren();
-    MACRO_ROWS.forEach(([label, key, unit]) => avgC.appendChild(bar(label, stats.avg[key], goals[key] || 0, unit, key)));
+    renderBarGroups(el('weekAvgBars'), (k) => stats.avg[k], (k) => goals[k] || 0);
 
     // week total
     el('weekRange').textContent = `${keys[0]} → ${keys[6]}`;
     const wk = sumWeek(days, selectedDate);
-    const totalC = el('weekBars');
-    totalC.replaceChildren();
-    MACRO_ROWS.forEach(([label, key, unit]) => totalC.appendChild(bar(label, wk[key], (goals[key] || 0) * 7, unit, key)));
+    renderBarGroups(el('weekBars'), (k) => wk[k], (k) => (goals[k] || 0) * 7);
 }
 
 // ---- water ------------------------------------------------------------------
@@ -648,6 +660,7 @@ function renderGoalInputs(goals) {
     el('goalFat').value = goals.fat || '';
     el('goalFiber').value = goals.fiber || '';
     el('goalSodium').value = goals.sodium || '';
+    el('goalIron').value = goals.iron || '';
     el('goalCalories').value = goals.calories || '';
 }
 

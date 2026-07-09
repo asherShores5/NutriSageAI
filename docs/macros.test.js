@@ -11,14 +11,14 @@ assert.strictEqual(num(3.5), 3.5);
 // sumMacros() tolerates missing / non-numeric fields
 assert.deepStrictEqual(
     sumMacros([
-        { food: 'a', macros: { carbs: 10, protein: 5, fat: 2, fiber: 3, sodium: 200, calories: 100 } },
-        { food: 'b', macros: { carbs: '20', protein: null, sodium: '50', calories: 'x' } },
+        { food: 'a', macros: { carbs: 10, protein: 5, fat: 2, fiber: 3, sodium: 200, iron: 1.5, calories: 100 } },
+        { food: 'b', macros: { carbs: '20', protein: null, sodium: '50', iron: '0.5', calories: 'x' } },
         { food: 'c' }
     ]),
-    { carbs: 30, protein: 5, fat: 2, fiber: 3, sodium: 250, calories: 100 }
+    { carbs: 30, protein: 5, fat: 2, fiber: 3, sodium: 250, iron: 2, calories: 100 }
 );
-assert.deepStrictEqual(sumMacros([]), { carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0, calories: 0 });
-assert.deepStrictEqual(sumMacros(null), { carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0, calories: 0 });
+assert.deepStrictEqual(sumMacros([]), { carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0, iron: 0, calories: 0 });
+assert.deepStrictEqual(sumMacros(null), { carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0, iron: 0, calories: 0 });
 
 // dateKey() -> zero-padded local YYYY-MM-DD
 assert.strictEqual(dateKey(new Date(2026, 0, 5)), '2026-01-05'); // Jan 5
@@ -52,12 +52,12 @@ assert.strictEqual(lastDays('2026-03-03', 30).length, 30);
 
 // scaleMacros() scales every key, rounds to 0.1, default-safe on junk
 assert.deepStrictEqual(
-    scaleMacros({ carbs: 10, protein: 5, fat: 2, fiber: 3, sodium: 200, calories: 100 }, 2),
-    { carbs: 20, protein: 10, fat: 4, fiber: 6, sodium: 400, calories: 200 }
+    scaleMacros({ carbs: 10, protein: 5, fat: 2, fiber: 3, sodium: 200, iron: 1.5, calories: 100 }, 2),
+    { carbs: 20, protein: 10, fat: 4, fiber: 6, sodium: 400, iron: 3, calories: 200 }
 );
 assert.deepStrictEqual(
     scaleMacros({ carbs: 10, calories: 100 }, 0.5),
-    { carbs: 5, protein: 0, fat: 0, fiber: 0, sodium: 0, calories: 50 }
+    { carbs: 5, protein: 0, fat: 0, fiber: 0, sodium: 0, iron: 0, calories: 50 }
 );
 assert.strictEqual(scaleMacros({ calories: 33 }, 0.5).calories, 16.5); // rounds to 0.1
 

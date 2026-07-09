@@ -4,7 +4,7 @@ function num(v) {
     return Number(v) || 0;
 }
 
-const MACRO_KEYS = ['carbs', 'protein', 'fat', 'fiber', 'sodium', 'calories'];
+const MACRO_KEYS = ['carbs', 'protein', 'fat', 'fiber', 'sodium', 'iron', 'calories'];
 
 function sumMacros(entries) {
     return (entries || []).reduce((acc, entry) => {

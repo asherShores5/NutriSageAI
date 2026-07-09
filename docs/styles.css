@@ -175,6 +175,15 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 .bar-fill.over { background: linear-gradient(90deg, var(--danger), #e0745a); }
 .bar-fill.good { background: linear-gradient(90deg, #2e9e5b, #46c072); }
 
+/* group divider between macro and micronutrient bars */
+.bar-group-label {
+    margin: 4px 0 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted);
+}
+
 /* ---- favorites chips ---- */
 #favorites { margin-top: 16px; }
 #favoriteChips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -212,6 +221,7 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 .entry-main { flex: 1; min-width: 0; }
 .entry-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .entry-macros { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+.entry-micros { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 1px; opacity: 0.8; }
 .entry-actions { flex: 0 0 auto; display: flex; gap: 4px; }
 .icon-btn {
     background: transparent; color: var(--muted);
@@ -228,6 +238,11 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 #goalsForm { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 #goalsForm label { display: flex; flex-direction: column; gap: 5px; font-size: 0.8rem; color: var(--muted); }
 #goalsForm button { grid-column: 1 / -1; }
+.form-group-label {
+    grid-column: 1 / -1; margin: 4px 0 0;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted);
+}
 
 /* ---- profile ---- */
 .seg { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
