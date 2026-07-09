@@ -112,6 +112,7 @@ def _push(user, item):
         _put_row(user, date, {
             "entries": item.get("entries", []),
             "water": item.get("water", 0),
+            "weight": item.get("weight", 0),
             "updatedAt": item.get("updatedAt"),
         })
     elif kind == "goals":

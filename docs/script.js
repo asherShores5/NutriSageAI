@@ -147,6 +147,8 @@ function wireAppEvents() {
     el('waterPlus').addEventListener('click', () => setWater(currentWater() + 1));
     el('waterMinus').addEventListener('click', () => setWater(currentWater() - 1));
     el('waterGoal').addEventListener('change', () => { setGoal('waterGoal', num(el('waterGoal').value)); render(); });
+    el('weightForm').addEventListener('submit', (e) => { e.preventDefault(); setWeight(num(el('weightInput').value)); });
+    el('weightClear').addEventListener('click', () => setWeight(0));
     el('trendMetric').addEventListener('change', renderTrends);
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 }
@@ -170,21 +172,23 @@ function shiftDay(delta) {
 }
 
 // ---- day data ---------------------------------------------------------------
-// A day is { entries:[...], water:<cups>, updatedAt }. Entries and water are edited
-// independently, so each writer preserves the other field on the day.
+// A day is { entries:[...], water:<cups>, weight:<number>, updatedAt }. Each field is edited
+// independently, so every writer preserves the others on the day.
 function currentDay() { return loadCache().days[selectedDate] || {}; }
 function currentEntries() { return currentDay().entries || []; }
 function currentWater() { return num(currentDay().water); }
+function currentWeight() { return num(currentDay().weight); }
 
 function writeDay(patch) {
     const state = loadCache();
     const day = { entries: [], ...(state.days[selectedDate] || {}), ...patch, updatedAt: new Date().toISOString() };
     state.days[selectedDate] = day;
     saveCache(state);
-    pushItem({ type: 'day', date: selectedDate, entries: day.entries, water: day.water, updatedAt: day.updatedAt });
+    pushItem({ type: 'day', date: selectedDate, entries: day.entries, water: day.water, weight: day.weight, updatedAt: day.updatedAt });
 }
 function setDayEntries(entries) { writeDay({ entries }); }
 function setWater(cups) { writeDay({ water: Math.max(0, cups) }); render(); }
+function setWeight(w) { writeDay({ weight: Math.max(0, w) }); render(); }
 
 // ---- food entry -------------------------------------------------------------
 async function addFood() {
@@ -377,6 +381,7 @@ function render() {
     renderEntries(entries);
     renderProgress(sumMacros(entries), state.goals);
     renderWater(state.goals);
+    renderWeight();
     renderWeek(state.days, state.goals);
     renderFavorites(state.meals || []);
     renderGoalInputs(state.goals);
@@ -542,20 +547,38 @@ function renderWater(goals) {
     }
 }
 
+// ---- weight (one weigh-in per day) ------------------------------------------
+function renderWeight() {
+    const w = currentWeight();
+    el('weightInput').value = w || '';
+    el('weightCurrent').textContent = w ? `${w}` : 'Not logged';
+    el('weightClear').hidden = !w;
+}
+
 // ---- trends (30-day canvas line chart, no libs) -----------------------------
+// Weight and water live on the day object; everything else is a summed nutrient.
+// Weight is drawn with gaps (an unlogged day is a hole, not zero), so null = no point.
+function trendValue(day, metric) {
+    if (metric === 'weight') return num(day.weight) || null; // gap on missing
+    if (metric === 'water') return num(day.water);
+    return Math.round(sumMacros(day.entries)[metric]);
+}
+
 function renderTrends() {
     const days = loadCache().days || {};
     const metric = el('trendMetric').value;
     const keys = lastDays(selectedDate, 30);
-    const vals = keys.map((k) => Math.round(sumMacros((days[k] || {}).entries)[metric]));
-    const logged = vals.filter((v) => v > 0).length;
-    el('trendSub').textContent = logged
-        ? `Last 30 days · ${logged} logged · max ${Math.max(...vals)}`
+    const vals = keys.map((k) => trendValue(days[k] || {}, metric));
+    const present = vals.filter((v) => v != null && v > 0);
+    el('trendSub').textContent = present.length
+        ? `Last 30 days · ${present.length} logged · max ${Math.max(...present)}`
         : 'No data in the last 30 days.';
-    drawChart(el('trendChart'), keys, vals);
+    drawChart(el('trendChart'), keys, vals, metric === 'weight');
 }
 
-function drawChart(canvas, keys, vals) {
+// vals may contain nulls (gaps — the line lifts the pen and doesn't connect through them).
+// zoom: base the y-axis on min..max instead of 0..max, so small weight swings are visible.
+function drawChart(canvas, keys, vals, zoom) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height, pad = 28;
     ctx.clearRect(0, 0, W, H);
@@ -563,30 +586,40 @@ function drawChart(canvas, keys, vals) {
     const brand = css.getPropertyValue('--brand').trim() || '#3e4eb8';
     const muted = css.getPropertyValue('--muted').trim() || '#888';
     const border = css.getPropertyValue('--border').trim() || '#ddd';
-    const max = Math.max(1, ...vals);
+
+    const present = vals.filter((v) => v != null);
+    const hi = Math.max(1, ...present);
+    const lo = zoom && present.length ? Math.min(...present) : 0;
+    const span = hi - lo || 1;
     const x = (i) => pad + (i * (W - 2 * pad)) / (keys.length - 1);
-    const y = (v) => H - pad - (v / max) * (H - 2 * pad);
+    const y = (v) => H - pad - ((v - lo) / span) * (H - 2 * pad);
 
     // baseline
     ctx.strokeStyle = border;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
 
-    // max label
+    // axis labels (min shown too when zoomed)
     ctx.fillStyle = muted;
     ctx.font = '12px sans-serif';
-    ctx.fillText(String(max), 2, pad);
+    ctx.fillText(String(Math.round(hi)), 2, pad);
+    if (zoom) ctx.fillText(String(Math.round(lo)), 2, H - pad - 2);
 
-    // line
+    // line — lift pen across nulls so gaps aren't bridged
     ctx.strokeStyle = brand;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    vals.forEach((v, i) => { i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)); });
+    let pen = false;
+    vals.forEach((v, i) => {
+        if (v == null) { pen = false; return; }
+        if (pen) ctx.lineTo(x(i), y(v)); else ctx.moveTo(x(i), y(v));
+        pen = true;
+    });
     ctx.stroke();
 
     // dots on logged days
     ctx.fillStyle = brand;
-    vals.forEach((v, i) => { if (v > 0) { ctx.beginPath(); ctx.arc(x(i), y(v), 2.5, 0, 7); ctx.fill(); } });
+    vals.forEach((v, i) => { if (v != null && v > 0) { ctx.beginPath(); ctx.arc(x(i), y(v), 2.5, 0, 7); ctx.fill(); } });
 
     // first/last date labels
     ctx.fillStyle = muted;

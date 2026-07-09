@@ -101,6 +101,19 @@
                 </div>
                 <p class="muted">Optional — track cups of water per day.</p>
             </div>
+
+            <div class="card" id="weightCard">
+                <div class="card-head">
+                    <h2>Weight</h2>
+                    <span id="weightCurrent" class="muted"></span>
+                </div>
+                <form id="weightForm" class="row">
+                    <input type="number" id="weightInput" min="0" max="1000" step="0.1" inputmode="decimal" placeholder="Today's weight" aria-label="Today's weight" />
+                    <button type="submit">Save</button>
+                    <button type="button" id="weightClear" class="ghost" hidden>Clear</button>
+                </form>
+                <p class="muted">Optional — one weigh-in per day. See the trend on the Trends tab.</p>
+            </div>
         </section>
 
         <!-- WEEK -->
@@ -128,6 +141,8 @@
                     <h2>Trends</h2>
                     <select id="trendMetric" aria-label="Metric">
                         <option value="calories">Calories</option>
+                        <option value="weight">Weight</option>
+                        <option value="water">Water (cups)</option>
                         <option value="carbs">Carbs</option>
                         <option value="protein">Protein</option>
                         <option value="fat">Fat</option>

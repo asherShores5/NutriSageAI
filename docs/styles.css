@@ -291,6 +291,11 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 #waterMinus, #waterPlus { flex: 0 0 auto; }
 #waterGoal { width: 64px; }
 
+/* ---- weight ---- */
+#weightForm { flex-wrap: wrap; }
+#weightForm #weightInput { flex: 1; min-width: 120px; }
+#weightForm button { flex: 0 0 auto; }
+
 /* ---- streak ---- */
 #streakCard { text-align: center; }
 #streakBig { font-size: 2.2rem; font-weight: 800; color: var(--brand); }
