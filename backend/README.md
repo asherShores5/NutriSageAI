@@ -11,21 +11,32 @@ All three hit the same Lambda (the HTTP API's `$default` route sends everything 
 
 | Route | Auth | Body → Response |
 |---|---|---|
-| `POST /` | none | `{"foodItem":"1 medium banana"}` → `{"carbs":27,"protein":1,"fat":0,"calories":105}` |
-| `POST /pull` | secret | `{"user","secret"}` → `{"days":{date:{entries,updatedAt}}, "goals":{...}, "meals":[...]}` |
+| `POST /` | none | `{"foodItem":"1 medium banana"}` → `{"carbs":27,"protein":1,"fat":0,"fiber":3,"sodium":1,"iron":0.3,"calories":105}` |
+| `POST /pull` | secret | `{"user","secret"}` → `{"days":{date:{entries,water,updatedAt}}, "goals":{...}, "meals":[...]}` |
 | `POST /push` | secret | `{"user","secret","item":{...}}` → `{"ok":true}` — `item.type` is `day` \| `goals` \| `meals` |
 | `OPTIONS *` | — | `204` (CORS preflight) |
+
+A `day` push carries `{type:"day", date, entries, water, updatedAt}`. Entries are `{food, macros, meal}` where
+`meal` ∈ breakfast/lunch/dinner/snack. Estimation keys: `carbs, protein, fat, fiber` (g), `sodium, iron` (mg),
+`calories`. To add/remove a nutrient, edit the `PROMPT` and the key tuple in `_macros`.
 
 Consumed by [../docs/script.js](../docs/script.js) (`API_URL`).
 
 ### Auth
 
-Per-user shared secret. The env var `USER_SECRETS` holds only SHA-256 **hashes** (`{"asher":"<hex>","aubyn":"<hex>"}`).
+Per-user shared secret. The env var `USER_SECRETS` holds only SHA-256 **hashes** (`{"asher":"<hex>","aubyn":"<hex>","tommy":"<hex>"}`).
 The client sends the plaintext secret; the Lambda hashes it and constant-time compares. Secrets are handed to
-each person out-of-band and cached in their browser's localStorage — never committed to the repo.
+each person out-of-band and cached in their browser's localStorage — never committed to the repo (the local
+plaintext record lives in the gitignored `keys.md`).
 
 **Add / rotate a user:** generate a random secret, `sha256` it, and update the `USER_SECRETS` env var on the Lambda
-(and add the name to `PROFILES` in the frontend). New user = new `pk`, no table change.
+(and add the lowercase name to `PROFILES` in the frontend). New user = new `pk`, no table change.
+
+> ⚠️ `update-function-configuration --environment` **replaces the whole variable map**. Fetch the current vars
+> first (`aws lambda get-function-configuration ... --query 'Environment.Variables'`) and re-send `MODEL_ID`,
+> `DATA_TABLE`, and `USER_SECRETS` together, or the ones you omit get deleted. The CLI shorthand can't parse the
+> nested-JSON `USER_SECRETS` string — write the map to a file and pass `--environment file://env.json`. Verify a
+> hash with `python -c "import hashlib; print(hashlib.sha256('<secret>'.encode()).hexdigest())"`.
 
 ## Redeploy code changes
 
@@ -38,10 +49,10 @@ each person out-of-band and cached in their browser's localStorage — never com
 | Resource | Name |
 |---|---|
 | Lambda | `nutrisageai-macro` (python3.12, handler `lambda_function.handler`) |
-| DynamoDB | `nutrisageai-data` (on-demand). `pk=user, sk=date\|goals`; shared library at `pk=household, sk=meals`. Row body is a JSON string in `data`. |
-| IAM role | `nutrisageai-macro-role` — `bedrock:InvokeModel` on the Haiku model + `GetItem`/`PutItem`/`Query` on `nutrisageai-data` + logging |
+| DynamoDB | `nutrisageai-data` (on-demand). `pk=user, sk=date\|goals`; shared library at `pk=household, sk=meals`. Day row body `{entries,water,updatedAt}`, JSON string in `data`. |
+| IAM role | `nutrisageai-macro-role` — `bedrock:InvokeModel` on the model + `GetItem`/`PutItem`/`Query` on `nutrisageai-data` + logging |
 | HTTP API | `nutrisageai-api` (id `q8f8dfzb0j`), CORS-locked to the GitHub Pages origin + localhost:8000 |
-| Model | `us.anthropic.claude-haiku-4-5-20251001-v1:0` (Bedrock inference profile) |
+| Model | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Bedrock inference profile). Upgraded from Haiku 4.5 — brand/restaurant recall was too low on Haiku. |
 | Env vars | `MODEL_ID`, `DATA_TABLE`, `USER_SECRETS` (hashes only) |
 
 ## Abuse / cost controls
