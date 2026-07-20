@@ -201,6 +201,23 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
     white-space: nowrap;
 }
 .chip:hover { filter: brightness(0.97); }
+#favoriteMenu { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+/* favorite = add-chip + inline remove (×), sharing one pill */
+.fav-chip {
+    display: inline-flex; align-items: stretch; padding: 0; overflow: hidden;
+    background: var(--brand-soft);
+}
+.fav-chip .chip-add {
+    background: none; border: none; color: var(--brand);
+    padding: 7px 6px 7px 13px; font-size: 0.85rem; font-weight: 500;
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fav-chip .chip-rm {
+    width: auto; height: auto; padding: 0 10px 0 4px; border-radius: 0;
+    font-size: 0.8rem; color: var(--muted);
+}
+.fav-chip .chip-rm:hover { background: none; color: var(--danger); }
+.icon-btn.faved { color: var(--brand); }
 
 /* ---- entry list ---- */
 .entry-list { list-style: none; margin: 0; padding: 0; }
@@ -230,8 +247,10 @@ button.ghost.danger:hover { background: color-mix(in srgb, var(--danger) 10%, tr
 }
 .icon-btn:hover { background: var(--brand-soft); color: var(--brand); filter: none; }
 .entry.editing { display: block; }
-.edit-row { display: flex; gap: 8px; }
-.edit-row input { flex: 1; }
+.edit-row { display: flex; align-items: center; gap: 8px; }
+.edit-row input[type="text"] { flex: 1; }
+.edit-row .edit-mult { flex: 0 0 64px; width: 64px; }
+.edit-times { color: var(--muted); flex: 0 0 auto; }
 .edit-row button { flex: 0 0 auto; }
 
 /* ---- goals form ---- */

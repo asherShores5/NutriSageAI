@@ -44,6 +44,25 @@ function scaleMacros(macros, factor) {
     return out;
 }
 
+// A portion label appends "(×N)" for anything but 1×. These two are inverses.
+function portionLabel(food, factor) {
+    return factor === 1 ? food : `${food} (×${factor})`;
+}
+// "eggs (×2)" -> {name:'eggs', factor:2}; a plain name -> {name, factor:1}.
+function parsePortion(food) {
+    const m = /^(.*) \(×([0-9.]+)\)$/.exec(food || '');
+    return m && Number(m[2]) > 0 ? { name: m[1], factor: Number(m[2]) } : { name: food || '', factor: 1 };
+}
+
+// Re-scale an entry to a new portion multiplier without re-estimating. The 1× base is
+// recovered from the current (labeled) macros, so this works on entries added before it existed.
+// ponytail: base = macros / current factor — sub-0.1g rounding drift per edit, fine for a family tracker.
+function adjustEntry(entry, factor) {
+    const { name, factor: cur } = parsePortion(entry.food);
+    const base = scaleMacros(entry.macros, 1 / cur);
+    return { ...entry, food: portionLabel(name, factor), macros: scaleMacros(base, factor) };
+}
+
 // Week averages over LOGGED days (days with ≥1 entry) — averaging over empty days is misleading.
 // Returns { avg:{macro:...}, logged, days:7 }.
 function weekStats(days, endKey) {
@@ -83,5 +102,5 @@ function pct(value, goal) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { num, sumMacros, dateKey, weekKeys, lastDays, sumWeek, scaleMacros, weekStats, streak, pct, MACRO_KEYS };
+    module.exports = { num, sumMacros, dateKey, weekKeys, lastDays, sumWeek, scaleMacros, portionLabel, parsePortion, adjustEntry, weekStats, streak, pct, MACRO_KEYS };
 }

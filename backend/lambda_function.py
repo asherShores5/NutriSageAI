@@ -2,7 +2,7 @@
 
 Routes (HTTP API quick-create sends everything here via $default):
   POST /            -> {foodItem} -> {carbs,protein,fat,calories}  (Bedrock, no auth)
-  POST /pull        -> {user,secret} -> {days:{date:{...}}, goals:{...}, meals:[...]}
+  POST /pull        -> {user,secret} -> {days:{date:{...}}, goals:{...}, meals:[...], favorites:[...]}
   POST /push        -> {user,secret,item:{type,...}} -> {ok:true}
   OPTIONS *         -> 204 (CORS preflight; API Gateway attaches the headers)
 
@@ -79,11 +79,14 @@ def _pull(user):
         KeyConditionExpression="pk = :u",
         ExpressionAttributeValues={":u": {"S": user}},
     )
+    favorites = []
     for item in resp.get("Items", []):
         sk = item["sk"]["S"]
         payload = json.loads(item.get("data", {}).get("S", "{}"))
         if sk == "goals":
             goals = payload
+        elif sk == "favorites":
+            favorites = payload.get("favorites", [])
         elif DATE_RE.match(sk):
             days[sk] = payload
 
@@ -92,7 +95,7 @@ def _pull(user):
         Key={"pk": {"S": SHARED_PK}, "sk": {"S": "meals"}},
     )
     meals = json.loads(shared["Item"]["data"]["S"]).get("library", []) if "Item" in shared else []
-    return {"days": days, "goals": goals, "meals": meals}
+    return {"days": days, "goals": goals, "meals": meals, "favorites": favorites}
 
 
 def _put_row(pk, sk, payload):
@@ -117,6 +120,8 @@ def _push(user, item):
         })
     elif kind == "goals":
         _put_row(user, "goals", item.get("goals", {}))
+    elif kind == "favorites":  # per-user permanent favorites
+        _put_row(user, "favorites", {"favorites": item.get("favorites", [])})
     elif kind == "meals":  # shared library — any authed user may update
         _put_row(SHARED_PK, "meals", {"library": item.get("library", [])})
     else:

@@ -25,8 +25,8 @@ let selectedDate = dateKey(new Date());
 
 function cacheKey() { return `nutri:${session.user}`; }
 function loadCache() {
-    try { return JSON.parse(localStorage.getItem(cacheKey())) || { days: {}, goals: {}, meals: [] }; }
-    catch { return { days: {}, goals: {}, meals: [] }; }
+    try { return JSON.parse(localStorage.getItem(cacheKey())) || { days: {}, goals: {}, meals: [], favorites: [] }; }
+    catch { return { days: {}, goals: {}, meals: [], favorites: [] }; }
 }
 function saveCache(state) { localStorage.setItem(cacheKey(), JSON.stringify(state)); }
 
@@ -223,13 +223,9 @@ async function getMacroData(foodItem) {
 }
 
 // Portion multiplier (defaults to 1 = "as described"). Clamped to a sane range.
-function portionFactor() {
-    const f = num(el('portionInput').value);
-    return f > 0 ? Math.min(f, 20) : 1;
-}
-function portionLabel(food, factor) {
-    return factor === 1 ? food : `${food} (×${factor})`;
-}
+// portionLabel lives in macros.js (shared + tested).
+function clampFactor(v) { const f = num(v); return f > 0 ? Math.min(f, 20) : 1; }
+function portionFactor() { return clampFactor(el('portionInput').value); }
 
 function addEntry(entry) {
     const entries = currentEntries();
@@ -244,17 +240,26 @@ function removeEntry(index) {
     render();
 }
 
-// Edit: re-estimate the corrected description and replace the row in place.
-async function saveEdit(index, newFood, statusNode) {
-    newFood = newFood.trim();
-    if (!newFood) return;
-    statusNode.textContent = 'Updating…';
-    try {
-        const macros = await getMacroData(newFood);
-        const entries = currentEntries();
-        entries[index] = { food: newFood, macros, meal: entries[index].meal }; // keep the meal bucket
+// Edit a row in place. Renaming re-estimates (the food changed); only changing the
+// multiplier re-scales locally — no Bedrock call, since the 1× base is already known.
+async function saveEdit(index, newName, factor, statusNode) {
+    newName = newName.trim();
+    if (!newName) return;
+    const entries = currentEntries();
+    const entry = entries[index];
+    const orig = parsePortion(entry.food);
+    if (newName.toLowerCase() === orig.name.toLowerCase()) {   // same food, just re-portion
+        entries[index] = adjustEntry(entry, factor);
         setDayEntries(entries);
-        rememberFavorite(newFood, macros);   // keep quick-add in sync
+        render();
+        return;
+    }
+    statusNode.textContent = 'Updating…';                      // renamed — re-estimate the 1× base
+    try {
+        const base = await getMacroData(newName);
+        entries[index] = { food: portionLabel(newName, factor), macros: scaleMacros(base, factor), meal: entry.meal };
+        setDayEntries(entries);
+        rememberFavorite(newName, base);   // keep quick-add in sync
         render();
     } catch {
         statusNode.textContent = 'Could not update. Try again.';
@@ -280,6 +285,38 @@ function rememberFavorite(food, macros) {
     state.meals = meals.slice(0, 20); // ponytail: cap at 20; add search if it grows past that
     saveCache(state);
     pushItem({ type: 'meals', library: state.meals });
+}
+
+// ---- favorites (per-user, permanent until removed) --------------------------
+// Like quick-add, but never auto-evicted. Stores the 1× base macros, so re-adding
+// scales locally instead of re-querying Bedrock. Keyed by lowercased name.
+function isFavorite(name) {
+    const key = name.toLowerCase();
+    return (loadCache().favorites || []).some((f) => f.name.toLowerCase() === key);
+}
+function addFavorite(name, baseMacros) {
+    const state = loadCache();
+    const favs = state.favorites || [];
+    const key = name.toLowerCase();
+    const at = favs.findIndex((f) => f.name.toLowerCase() === key);
+    if (at >= 0) favs[at] = { name, macros: baseMacros }; else favs.unshift({ name, macros: baseMacros });
+    state.favorites = favs;
+    saveCache(state);
+    pushItem({ type: 'favorites', favorites: state.favorites });
+}
+function removeFavorite(name) {
+    const state = loadCache();
+    const key = name.toLowerCase();
+    state.favorites = (state.favorites || []).filter((f) => f.name.toLowerCase() !== key);
+    saveCache(state);
+    pushItem({ type: 'favorites', favorites: state.favorites });
+}
+// Star toggle on an entry: save/remove its 1× base (recovered from the labeled portion).
+function toggleFavorite(entry) {
+    const { name, factor } = parsePortion(entry.food);
+    if (isFavorite(name)) removeFavorite(name);
+    else addFavorite(name, scaleMacros(entry.macros, 1 / factor));
+    render();
 }
 
 // ---- goals ------------------------------------------------------------------
@@ -383,6 +420,7 @@ function render() {
     renderWater(state.goals);
     renderWeight();
     renderWeek(state.days, state.goals);
+    renderFavoritesMenu(state.favorites || []);
     renderFavorites(state.meals || []);
     renderGoalInputs(state.goals);
     if (!el('tab-trends').hidden) renderTrends();
@@ -436,12 +474,16 @@ function entryRow(entry, index) {
     micros.textContent = `Na ${num(m.sodium)}mg · Fe ${num(m.iron)}mg`;
     main.append(name, macros, micros);
 
+    const favName = parsePortion(entry.food).name;
+    const faved = isFavorite(favName);
     const actions = document.createElement('div');
     actions.className = 'entry-actions';
+    const favBtn = iconBtn(faved ? '★' : '☆', `${faved ? 'Remove' : 'Save'} ${favName} ${faved ? 'from' : 'to'} favorites`, () => toggleFavorite(entry));
+    if (faved) favBtn.classList.add('faved');
     const editBtn = iconBtn('✎', `Edit ${entry.food}`, () => openEditor(li, entry, index));
     const rmBtn = iconBtn('✕', `Remove ${entry.food}`, () => removeEntry(index));
     rmBtn.classList.add('danger');
-    actions.append(editBtn, rmBtn);
+    actions.append(favBtn, editBtn, rmBtn);
 
     li.append(main, actions);
     return li;
@@ -450,26 +492,39 @@ function entryRow(entry, index) {
 function openEditor(li, entry, index) {
     li.replaceChildren();
     li.classList.add('editing');
+    const { name, factor } = parsePortion(entry.food);   // edit the base name + its multiplier
     const input = document.createElement('input');
     input.type = 'text';
-    input.value = entry.food;
+    input.value = name;
     input.maxLength = 80;
+    const mult = document.createElement('input');
+    mult.type = 'number';
+    mult.className = 'edit-mult';
+    mult.value = factor;
+    mult.min = 0.25; mult.step = 0.25;
+    mult.setAttribute('aria-label', 'Portion multiplier');
     const status = document.createElement('span');
     status.className = 'status';
+    const commit = () => saveEdit(index, input.value, clampFactor(mult.value), status);
     const save = document.createElement('button');
     save.textContent = 'Save';
-    save.addEventListener('click', () => saveEdit(index, input.value, status));
+    save.addEventListener('click', commit);
     const cancel = document.createElement('button');
     cancel.className = 'ghost';
     cancel.textContent = 'Cancel';
     cancel.addEventListener('click', render);
     const row = document.createElement('div');
     row.className = 'edit-row';
-    row.append(input, save, cancel);
+    const times = document.createElement('span');
+    times.className = 'edit-times';
+    times.textContent = '×';
+    row.append(input, times, mult, save, cancel);
     li.append(row, status);
     input.focus();
     input.select();
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveEdit(index, input.value, status); if (e.key === 'Escape') render(); });
+    const onKey = (e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') render(); };
+    input.addEventListener('keydown', onKey);
+    mult.addEventListener('keydown', onKey);
 }
 
 function iconBtn(glyph, label, onClick) {
@@ -660,6 +715,36 @@ function bar(label, value, goal, unit, key) {
     track.appendChild(fill);
     wrap.append(head, track);
     return wrap;
+}
+
+// Permanent favorites menu: one-tap re-add at the current portion, plus a remove (×).
+function renderFavoritesMenu(favorites) {
+    const c = el('favoriteMenu');
+    c.replaceChildren();
+    if (!favorites.length) {
+        const p = document.createElement('p');
+        p.className = 'muted';
+        p.textContent = 'Star a food from your entries to save it here permanently.';
+        c.appendChild(p);
+        return;
+    }
+    favorites.forEach((fav) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip fav-chip';
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'chip-add';
+        add.textContent = '★ ' + fav.name;
+        add.title = `Add ${fav.name}`;
+        add.addEventListener('click', () => {
+            const factor = portionFactor();
+            addEntry({ food: portionLabel(fav.name, factor), macros: scaleMacros(fav.macros, factor), meal: el('mealSelect').value });
+        });
+        const rm = iconBtn('✕', `Remove ${fav.name} from favorites`, () => { removeFavorite(fav.name); render(); });
+        rm.classList.add('chip-rm', 'danger');
+        chip.append(add, rm);
+        c.appendChild(chip);
+    });
 }
 
 function renderFavorites(meals) {

@@ -1,6 +1,6 @@
 // Run with: node docs/macros.test.js
 const assert = require('assert');
-const { num, sumMacros, dateKey, weekKeys, lastDays, sumWeek, scaleMacros, weekStats, streak, pct } = require('./macros.js');
+const { num, sumMacros, dateKey, weekKeys, lastDays, sumWeek, scaleMacros, portionLabel, parsePortion, adjustEntry, weekStats, streak, pct } = require('./macros.js');
 
 // num() coerces junk to 0, keeps real numbers
 assert.strictEqual(num('12'), 12);
@@ -60,6 +60,23 @@ assert.deepStrictEqual(
     { carbs: 5, protein: 0, fat: 0, fiber: 0, sodium: 0, iron: 0, calories: 50 }
 );
 assert.strictEqual(scaleMacros({ calories: 33 }, 0.5).calories, 16.5); // rounds to 0.1
+
+// portionLabel/parsePortion are inverses; 1× has no suffix
+assert.strictEqual(portionLabel('eggs', 1), 'eggs');
+assert.strictEqual(portionLabel('eggs', 2), 'eggs (×2)');
+assert.deepStrictEqual(parsePortion('eggs'), { name: 'eggs', factor: 1 });
+assert.deepStrictEqual(parsePortion('eggs (×2)'), { name: 'eggs', factor: 2 });
+assert.deepStrictEqual(parsePortion('eggs (×1.5)'), { name: 'eggs', factor: 1.5 });
+assert.deepStrictEqual(parsePortion('bag (of chips)'), { name: 'bag (of chips)', factor: 1 }); // only ×N suffix counts
+
+// adjustEntry() re-scales from the recovered 1× base, relabels, keeps meal
+const e2 = adjustEntry({ food: 'eggs', macros: { carbs: 10, calories: 100 }, meal: 'lunch' }, 2);
+assert.strictEqual(e2.food, 'eggs (×2)');
+assert.strictEqual(e2.macros.calories, 200);
+assert.strictEqual(e2.meal, 'lunch');
+const back = adjustEntry(e2, 1); // 2× back to 1× recovers the base and drops the suffix
+assert.strictEqual(back.food, 'eggs');
+assert.strictEqual(back.macros.calories, 100);
 
 // weekStats() averages over LOGGED days only (2 logged of 7 here)
 const stats = weekStats(days, '2026-03-03');
